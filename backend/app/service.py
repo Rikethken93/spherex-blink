@@ -2,6 +2,7 @@
 fetch cutouts -> group into epochs -> reproject+stack -> render -> cache."""
 from __future__ import annotations
 
+import math
 import os
 
 from . import cache, config
@@ -19,6 +20,16 @@ from .pipeline.reproject_stack import stack_epoch
 from .pipeline.spectrum import extract_spectrum
 
 VALID_MODES = {"blink", "difference", "sum", "rgb"}
+
+
+def _json_safe_point(point: dict) -> dict:
+    """A sparse aperture (few/no valid pixels in that epoch) makes
+    aperture_photometry return NaN for flux/error. Python's json.dumps
+    happily writes a literal `NaN` token by default, which is not valid
+    JSON per the ECMA-404 grammar -- JavaScript's native JSON.parse throws
+    a SyntaxError on it, breaking the light-curve chart outright for that
+    response. Replace non-finite floats with None (-> JSON null) instead."""
+    return {k: (None if isinstance(v, float) and not math.isfinite(v) else v) for k, v in point.items()}
 
 
 def validate_request(ra_deg: float, dec_deg: float, fov_arcmin: float, mode: str) -> None:
@@ -208,7 +219,7 @@ def get_lightcurve(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV
         return cached
 
     _exposures, _epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
-    points = [p.__dict__ for p in build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)]
+    points = [_json_safe_point(p.__dict__) for p in build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)]
     cache.write_json(cache_dir, points)
     return points
 
@@ -248,7 +259,7 @@ def precache_all(ra_deg: float, dec_deg: float, fov_arcmin: float, modes: list[s
     results["spectrum_points"] = len(spectrum_points)
 
     lightcurve_dir = cache.lightcurve_cache_dir(ra_deg, dec_deg, fov_arcmin)
-    lightcurve_points = [p.__dict__ for p in build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)]
+    lightcurve_points = [_json_safe_point(p.__dict__) for p in build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)]
     cache.write_json(lightcurve_dir, lightcurve_points)
     results["lightcurve_points"] = len(lightcurve_points)
 

@@ -220,6 +220,32 @@ def test_lightcurve_is_cached_and_does_not_requery_on_second_call(mock_coverage,
     assert calls["n"] == 1
 
 
+def test_lightcurve_sparse_epoch_serializes_nan_as_null(monkeypatch, tmp_path):
+    """Regression test: a sparse epoch with no valid pixels in the
+    aperture makes aperture_photometry return NaN, and Python's
+    json.dumps writes a literal `NaN` token by default -- not valid JSON,
+    and something a browser's JSON.parse rejects outright."""
+    monkeypatch.setattr(service.config, "CACHE_DIR", str(tmp_path))
+
+    meta = ExposureMeta(
+        access_url="synthetic://test", obs_id="fake-sparse", detector=3,
+        em_min_um=1.63, em_max_um=2.41, t_min_mjd=60000.0, t_max_mjd=60000.0,
+        obs_collection="synthetic_test_data",
+    )
+    exposure = _fake_exposure(60000.0)
+    exposure.flags[:] = 1  # every pixel flagged -> every pixel masked to NaN
+
+    monkeypatch.setattr(service, "query_exposure_metadata", lambda *a, **k: [meta])
+    monkeypatch.setattr(service, "fetch_exposures", lambda *a, **k: [exposure])
+
+    resp = client.get("/api/lightcurve", params={"ra": "180.0", "dec": "10.0"})
+    assert resp.status_code == 200
+    assert "NaN" not in resp.text  # would be invalid JSON if present
+    point = resp.json()["points"][0]
+    assert point["flux"] is None
+    assert point["error"] is None
+
+
 def test_rgb_mode_uses_a_distinct_stack_per_band(mock_coverage_multiband):
     """Regression test: stack_epoch blends every detector in an epoch into
     one combined image, so naively reusing stacked-epoch images per
