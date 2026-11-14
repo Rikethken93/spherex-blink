@@ -15,7 +15,7 @@ client = TestClient(app)
 RA0, DEC0 = 180.0, 10.0
 
 
-def _fake_exposure(mjd: float, detector: int = 3) -> Exposure:
+def _fake_exposure(mjd: float, detector: int = 3, value: float = 50.0) -> Exposure:
     npix = 16
     wcs = WCS(naxis=2)
     wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
@@ -23,7 +23,7 @@ def _fake_exposure(mjd: float, detector: int = 3) -> Exposure:
     wcs.wcs.crpix = [npix / 2 + 0.5, npix / 2 + 0.5]
     wcs.wcs.cdelt = [-6.2 / 3600.0, 6.2 / 3600.0]
     image = np.full((npix, npix), 5.0, dtype=np.float32)
-    image[npix // 2, npix // 2] = 50.0
+    image[npix // 2, npix // 2] = value
     flags = np.zeros((npix, npix), dtype=np.int32)
     variance = np.ones((npix, npix), dtype=np.float32)
     meta = ExposureMeta(
@@ -57,6 +57,34 @@ def mock_coverage(monkeypatch, tmp_path):
         for i in range(3)
     ]
     exposures = [_fake_exposure(m.t_min_mjd) for m in metas]
+
+    monkeypatch.setattr(service, "query_exposure_metadata", lambda *a, **k: metas)
+    monkeypatch.setattr(service, "fetch_exposures", lambda *a, **k: exposures)
+    return metas, exposures
+
+
+@pytest.fixture
+def mock_coverage_multiband(monkeypatch, tmp_path):
+    monkeypatch.setattr(service.config, "CACHE_DIR", str(tmp_path))
+
+    # Three detectors, each with a distinctly bright center pixel, all in
+    # the same epoch -- so an RGB composite should show a different
+    # brightness per channel, not the same blended image three times.
+    specs = [(1, 20.0), (3, 120.0), (6, 220.0)]
+    metas = [
+        ExposureMeta(
+            access_url="synthetic://test",
+            obs_id=f"fake-meta-d{detector}",
+            detector=detector,
+            em_min_um=1.0,
+            em_max_um=2.0,
+            t_min_mjd=60000.0,
+            t_max_mjd=60000.0,
+            obs_collection="synthetic_test_data",
+        )
+        for detector, _ in specs
+    ]
+    exposures = [_fake_exposure(60000.0, detector=d, value=v) for d, v in specs]
 
     monkeypatch.setattr(service, "query_exposure_metadata", lambda *a, **k: metas)
     monkeypatch.setattr(service, "fetch_exposures", lambda *a, **k: exposures)
@@ -190,3 +218,27 @@ def test_lightcurve_is_cached_and_does_not_requery_on_second_call(mock_coverage,
     assert second.status_code == 200
     assert first.json() == second.json()
     assert calls["n"] == 1
+
+
+def test_rgb_mode_uses_a_distinct_stack_per_band(mock_coverage_multiband):
+    """Regression test: stack_epoch blends every detector in an epoch into
+    one combined image, so naively reusing stacked-epoch images per
+    "band" produced the identical frame in all three RGB channels. RGB
+    mode must instead build one single-band deep stack per channel."""
+    from PIL import Image
+
+    resp = client.get("/api/frames", params={"ra": "180.0", "dec": "10.0", "fov": 3, "mode": "rgb"})
+    assert resp.status_code == 200
+    body = resp.json()
+    cache_dir = body["cache_key_dir"]
+
+    png_path = service.config.CACHE_DIR + "/" + cache_dir + "/frame_0.png"
+    img = Image.open(png_path)
+    arr = np.array(img)
+    center = arr[arr.shape[0] // 2, arr.shape[1] // 2]  # [R, G, B]
+    r, g, b = int(center[0]), int(center[1]), int(center[2])
+    # The three detectors were given very different brightness (20, 120,
+    # 220), so the three channels at the bright pixel must differ -- if
+    # they were all equal, that's the old bug (same blended image reused
+    # for every channel).
+    assert len({r, g, b}) == 3, f"expected 3 distinct channel values, got R={r} G={g} B={b}"

@@ -97,7 +97,15 @@ def _epoch_metadata(epochs, stacked_epochs) -> list[dict]:
     return epoch_meta
 
 
-def _render_mode(mode: str, stacked_epochs, cache_dir: str) -> list[str]:
+def _render_mode(
+    mode: str,
+    stacked_epochs,
+    cache_dir: str,
+    exposures=None,
+    ra_deg: float | None = None,
+    dec_deg: float | None = None,
+    fov_arcmin: float | None = None,
+) -> list[str]:
     frame_names: list[str] = []
     if mode == "blink":
         pngs = render_blink_frames([s.image for s in stacked_epochs])
@@ -116,16 +124,25 @@ def _render_mode(mode: str, stacked_epochs, cache_dir: str) -> list[str]:
         cache.write_bytes(cache_dir, "frame_0.png", png)
         frame_names.append("frame_0.png")
     elif mode == "rgb":
-        bands = sorted({d for s in stacked_epochs for d in s.detectors})
+        # Each stacked epoch's .image already blends every detector
+        # present in that epoch into one combined frame (stack_epoch has
+        # no notion of "band"), so picking an "epoch that happens to
+        # contain band X" and reusing its .image would just return the
+        # same all-bands-blended image for every channel -- not a real
+        # 3-wavelength-range composite. RGB needs its own three
+        # single-band deep stacks, built directly from the raw exposures.
+        if exposures is None or ra_deg is None or dec_deg is None or fov_arcmin is None:
+            raise InvalidRequestError("rgb mode requires the raw exposures")
+        bands = sorted({e.detector for e in exposures})
         if len(bands) < 3:
             raise InvalidRequestError("rgb mode needs exposures from at least 3 detectors")
         lo, mid, hi = bands[0], bands[len(bands) // 2], bands[-1]
 
-        def band_image(band):
-            frames = [s.image for s in stacked_epochs if band in s.detectors]
-            return frames[0] if frames else stacked_epochs[0].image
+        def band_stack(band: int):
+            band_exposures = [e for e in exposures if e.detector == band]
+            return stack_epoch(band_exposures, ra_deg, dec_deg, fov_arcmin).image
 
-        png = render_rgb(band_image(hi), band_image(mid), band_image(lo))
+        png = render_rgb(band_stack(hi), band_stack(mid), band_stack(lo))
         cache.write_bytes(cache_dir, "frame_0.png", png)
         frame_names.append("frame_0.png")
     return frame_names
@@ -152,7 +169,7 @@ def get_frames(
 
     exposures, epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin, detector, wl_min, wl_max)
     epoch_meta = _epoch_metadata(epochs, stacked_epochs)
-    frame_names = _render_mode(mode, stacked_epochs, cache_dir)
+    frame_names = _render_mode(mode, stacked_epochs, cache_dir, exposures, ra_deg, dec_deg, fov_arcmin)
 
     result = {
         "ra_deg": ra_deg,
@@ -212,7 +229,7 @@ def precache_all(ra_deg: float, dec_deg: float, fov_arcmin: float, modes: list[s
     for mode in modes:
         cache_dir = cache.frames_cache_dir(ra_deg, dec_deg, fov_arcmin, mode, "None", "None", "None")
         try:
-            frame_names = _render_mode(mode, stacked_epochs, cache_dir)
+            frame_names = _render_mode(mode, stacked_epochs, cache_dir, exposures, ra_deg, dec_deg, fov_arcmin)
         except InvalidRequestError as exc:
             results[f"mode_{mode}"] = f"skipped: {exc}"
             continue
