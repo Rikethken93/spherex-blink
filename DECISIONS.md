@@ -151,5 +151,56 @@ format: **Decision** — Alternatives considered — Reason.
   blink/spectrum/light-curve flow, and shows an inline "unavailable"
   message in its own panel on failure rather than throwing.
 
+- **`/api/spectrum` and `/api/lightcurve` are cached on disk, same as
+  `/api/frames`.** — Reason: the first implementation cached frames but
+  not spectrum/light-curve, so even after `/api/frames` was an instant
+  cache hit for a precached demo target, loading its spectrum or light
+  curve would still trigger a full live IRSA fetch (minutes) on every
+  single page load -- directly against the "works offline/instantly"
+  goal. Added `cache.spectrum_cache_dir`/`lightcurve_cache_dir`, wired
+  into `service.get_spectrum`/`get_lightcurve`, with a regression test
+  (`test_spectrum_is_cached_and_does_not_requery_on_second_call`) proving
+  a second call doesn't re-hit `query_exposure_metadata`.
+
+- **`scripts/precache.py` fetches each target's exposures exactly once**
+  (`service.precache_all`), deriving every requested frame mode plus the
+  spectrum and light curve from that single fetch. — Alternative (the
+  first implementation): call `service.get_frames` per mode, then
+  `get_spectrum`, then `get_lightcurve` independently, each doing its own
+  full `query_exposure_metadata` + `fetch_exposures`. — Reason: those are
+  all the *same* exposures at the *same* position; fetching them 3-6
+  times instead of once was pure waste discovered mid-precache-run (each
+  extra pass cost several more minutes per target against an already
+  slow and occasionally overloaded live archive).
+
+- **Three extra "southern sky" demo targets: Proxima Centauri, Luhman 16
+  AB, UGPS 0722-05.** — Alternatives considered: other known high-PM/
+  variable objects (e.g. Kapteyn's Star, SCR 1845-6357) were viable but
+  less famous or less clearly tied to the "blink discovery" narrative. —
+  Reason each was picked: Proxima Centauri is the closest star to the Sun,
+  a genuine flare (variable) star, and at Dec -62° sits in the deep
+  southern sky many LATAM observers (and few US/European ones) can see
+  well -- same "blink" story as Barnard's Star but visible from home.
+  Luhman 16 AB (Dec -53°) is the closest brown-dwarf binary to the Sun,
+  found in 2013 by exactly the WISE-proper-motion "blink" signature this
+  tool visualizes with SPHEREx instead. UGPS 0722-05 sits near the
+  celestial equator (Dec -5.7°), so it transits near the zenith from
+  Barranquilla specifically, not just "somewhere in the south" -- a
+  concrete, locally-relevant target for the LATAM/citizen-science framing
+  the challenge asks for.
+
+- **The frontend's direct-coordinate search path parses sexagesimal input
+  client-side (`frontend/src/coords.ts`) instead of blindly `Number()`-
+  converting it.** — Reason, found by re-reading the task's own
+  requirement ("sexagesimal or decimal") against the code: the original
+  implementation did `Number(parts[0]) || 0`, which silently turns any
+  sexagesimal string (e.g. `08h55m10.831s`) into `0` instead of parsing
+  it or erroring -- the backend already handled both formats correctly
+  (`backend/app/coords.py`), but the frontend never actually sent the
+  real value through. Fixed with a small parser mirroring the backend's
+  logic, used both for live search input and for restoring `?ra=&dec=`
+  from a shared URL; a clear `error.bad_coords` message replaces the
+  silent fallback to `(0, 0)` on genuinely unparseable input.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)
