@@ -8,9 +8,12 @@ from astropy.visualization import AsinhStretch, ImageNormalize, ZScaleInterval
 
 
 def shared_normalization(frames: list[np.ndarray]) -> ImageNormalize:
-    finite_values = np.concatenate(
-        [f[np.isfinite(f)].ravel() for f in frames if np.isfinite(f).any()]
-    )
+    # A sparsely-covered epoch (few exposures, mostly flagged) can end up
+    # entirely NaN -- guard both the per-frame filter and the case where
+    # every single frame is empty, rather than crashing np.concatenate on
+    # an empty list of arrays.
+    parts = [f[np.isfinite(f)].ravel() for f in frames if np.isfinite(f).any()]
+    finite_values = np.concatenate(parts) if parts else np.array([0.0, 1.0])
     if finite_values.size == 0:
         finite_values = np.array([0.0, 1.0])
     interval = ZScaleInterval()
