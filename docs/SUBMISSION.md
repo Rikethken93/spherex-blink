@@ -43,8 +43,11 @@ motion and variability directly, without installing anything.
   `DECISIONS.md`): the SIA2 collection names, the cutout URL parameters,
   the 7-HDU FITS layout, and the spectral WCS used for per-pixel
   wavelength.
-- Flagged pixels (FLAGS != 0) are masked before stacking; combination is a
-  proper variance-weighted mean, not a naive average.
+- Pixels flagged for a real defect (cosmic ray, saturation, hot/cold pixel,
+  etc. — every bit in the SPHEREx L2 FLAGS word except SOURCE, which just
+  marks "a catalogued source is here" and is kept) are masked before
+  stacking; combination is a proper variance-weighted mean, not a naive
+  average.
 - Proper-motion correction is necessary, not decorative: Barnard's Star
   moves 10.3"/yr — about 1.7 SPHEREx pixels per year — so a static
   catalog position would visibly drift out of a small field of view within
