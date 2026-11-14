@@ -74,7 +74,7 @@ async function loadAndShow(raDeg: number, decDeg: number, fovArcmin: number, mod
     // position; the spectrum view itself only loads on click (see below),
     // starting with the target center so the panel isn't empty at first.
     currentCenter = { ra: raDeg, dec: decDeg, fov: fovArcmin };
-    void handleImageClick(0.5, 0.5);
+    if (!state.lowBandwidth) void handleImageClick(0.5, 0.5);
 
     try {
       const lightcurve = await getLightCurve(raDeg, decDeg, fovArcmin);
@@ -236,12 +236,24 @@ async function init(): Promise<void> {
   const initialDec = state.dec ? Number(state.dec) : NaN;
   // The sky view (initAladin) depends on an external CDN and must never
   // block the primary blink view -- run them independently, not sequentially.
+  // Low bandwidth mode skips the sky view entirely: Aladin Lite pulls in
+  // its own JS bundle plus HiPS tile and catalog imagery from an external
+  // CDN, none of which the blink/spectrum/light-curve views need.
+  const maybeInitAladin = (ra: number, dec: number) => {
+    if (state.lowBandwidth) {
+      const container = el<HTMLDivElement>("aladin-lite-div");
+      container.textContent = t("lowbw.sky_view_skipped");
+    } else {
+      void initAladin("aladin-lite-div", ra, dec, state.fov / 60);
+    }
+  };
+
   if (!Number.isNaN(initialRa) && !Number.isNaN(initialDec)) {
     searchInput.value = `${initialRa} ${initialDec}`;
-    void initAladin("aladin-lite-div", initialRa, initialDec, state.fov / 60);
+    maybeInitAladin(initialRa, initialDec);
     await loadAndShow(initialRa, initialDec, state.fov, state.mode);
   } else {
-    void initAladin("aladin-lite-div", 266.4, -29.0, state.fov / 60);
+    maybeInitAladin(266.4, -29.0);
   }
 
   window.addEventListener("popstate", () => {

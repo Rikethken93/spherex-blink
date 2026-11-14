@@ -1,4 +1,6 @@
 {
+  "skip": "Skip to main content",
+  "close": "Close",
   "app.title": "SPHEREx Blink",
   "app.tagline": "Spot moving and variable objects in NASA SPHEREx all-sky imagery",
   "search.placeholder": "Object name (e.g. Barnard's Star) or RA/Dec",
@@ -20,6 +22,7 @@
   "embed.button": "Embed",
   "embed.copied": "Embed code copied to clipboard",
   "lowbw.toggle": "Low bandwidth mode",
+  "lowbw.sky_view_skipped": "Sky view skipped in low bandwidth mode.",
   "lang.toggle": "Español",
   "panel.sky": "Sky view",
   "panel.spectrum": "Spectrum",

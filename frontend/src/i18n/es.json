@@ -1,4 +1,6 @@
 {
+  "skip": "Saltar al contenido principal",
+  "close": "Cerrar",
   "app.title": "SPHEREx Blink",
   "app.tagline": "Detecta objetos en movimiento y variables en las imágenes de todo el cielo de SPHEREx (NASA)",
   "search.placeholder": "Nombre del objeto (ej. Estrella de Barnard) o AR/Dec",
@@ -20,6 +22,7 @@
   "embed.button": "Insertar",
   "embed.copied": "Código para insertar copiado al portapapeles",
   "lowbw.toggle": "Modo de bajo consumo de datos",
+  "lowbw.sky_view_skipped": "Vista del cielo omitida en modo de bajo consumo de datos.",
   "lang.toggle": "English",
   "panel.sky": "Vista del cielo",
   "panel.spectrum": "Espectro",
