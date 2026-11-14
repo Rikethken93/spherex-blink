@@ -41,12 +41,20 @@ FITS_EXTENSIONS = {
     "wcs_wave": "WCS-WAVE",
 }
 
-# Flag bits that mark a pixel unusable for science (SPHEREx L2 quality flags
-# documentation: bit 0 reserved/no-data, nonzero generally means "do not use"
-# for a quicklook tool like this one -- we treat any nonzero FLAGS pixel as
-# masked rather than decoding individual bits, since this is a discovery
-# tool, not a photometric pipeline).
-FLAG_MASK_NONZERO = True
+# Which FLAGS bits mark a pixel unusable for science, per Table 16 ("Image
+# pixel flags used in spectral images at Level 2") of the SPHEREx
+# Explanatory Supplement (v2.1, confirmed by downloading and reading the
+# actual PDF -- see DECISIONS.md). Every defined bit means "exclude this
+# pixel" EXCEPT bit 21 (SOURCE, "pixel mapped to a known source" -- purely
+# informational, not a defect). A live cutout showed ~97% of pixels with
+# only bit 21 set; masking on "any nonzero bit" as a first pass treated
+# nearly every real source pixel as bad data and produced blank-looking
+# stacks -- exactly backwards for a tool whose purpose is finding sources.
+_SOURCE_BIT = 21
+# Bits 0-29 are the documented range (Table 16); FLAGS is a signed int32
+# array, so the mask must stay within int32 range (0xFFFFFFFF would
+# overflow a bitwise AND against it).
+FLAG_BAD_BITMASK = 0x3FFFFFFF & ~(1 << _SOURCE_BIT)
 
 # --- Detectors / linear variable filter bands -------------------------------
 # Wavelength coverage and resolving power per detector array (SPHEREx

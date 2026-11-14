@@ -214,12 +214,14 @@ async function init(): Promise<void> {
 
   const initialRa = state.ra ? Number(state.ra) : NaN;
   const initialDec = state.dec ? Number(state.dec) : NaN;
+  // The sky view (initAladin) depends on an external CDN and must never
+  // block the primary blink view -- run them independently, not sequentially.
   if (!Number.isNaN(initialRa) && !Number.isNaN(initialDec)) {
     searchInput.value = `${initialRa} ${initialDec}`;
-    await initAladin("aladin-lite-div", initialRa, initialDec, state.fov / 60);
+    void initAladin("aladin-lite-div", initialRa, initialDec, state.fov / 60);
     await loadAndShow(initialRa, initialDec, state.fov, state.mode);
   } else {
-    await initAladin("aladin-lite-div", 266.4, -29.0, state.fov / 60);
+    void initAladin("aladin-lite-div", 266.4, -29.0, state.fov / 60);
   }
 
   window.addEventListener("popstate", () => {

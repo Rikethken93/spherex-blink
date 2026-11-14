@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .. import config
 from ..irsa_client import Exposure
 
 logger = logging.getLogger("spherex_blink.spectrum")
@@ -39,7 +40,7 @@ def extract_spectrum(exposures: list[Exposure], ra_deg: float, dec_deg: float) -
         h, w = exposure.image.shape
         if not (0 <= xi < w and 0 <= yi < h):
             continue
-        if exposure.flags[yi, xi] != 0:
+        if exposure.flags[yi, xi] & config.FLAG_BAD_BITMASK:
             continue
         flux = float(exposure.image[yi, xi])
         var = float(exposure.variance[yi, xi])

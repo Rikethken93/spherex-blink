@@ -121,5 +121,35 @@ format: **Decision** — Alternatives considered — Reason.
   frame. Fixed to fall back to a default [0, 1] normalization range when
   no frame in a sequence has any finite pixel at all.
 
+- **FLAGS masking excludes every documented bit except bit 21 (SOURCE).** —
+  Alternative (the original implementation): treat any nonzero FLAGS value
+  as "bad, mask it out." — Reason this was wrong, found by actually looking
+  at the rendered output: a live Barnard's Star blink render came out
+  essentially solid black. Inspecting the real FLAGS data showed ~97% of
+  pixels carried only bit 21 set. Downloading and reading the actual
+  SPHEREx Explanatory Supplement PDF (Table 16, "Image pixel flags used in
+  spectral images at Level 2") confirmed bit 21 is `SOURCE`: "Pixel mapped
+  to a known source" -- an informational flag, not a defect, and
+  explicitly the one bit the SPHEREx team's own guidance says to keep
+  (exclude pixels with any *other* flag). The original "any nonzero bit"
+  logic was masking out almost every pixel that actually contains a
+  source -- backwards for a tool whose entire purpose is finding sources.
+  Fixed in `config.py` (`FLAG_BAD_BITMASK`, all bits except SOURCE) and
+  applied in both `reproject_stack.py` and `spectrum.py`. This also
+  invalidated and required regenerating every cache entry produced before
+  the fix.
+
+- **The Aladin Lite sky-view panel fails gracefully instead of blocking
+  app startup.** — Reason: the CDS Aladin Lite CDN
+  (`aladin.cds.unistra.fr`) was observed fully down during development
+  (its entire `/AladinLite/api/v3/` path tree returned a branded "Page
+  unavailable" error, confirmed across multiple pinned version URLs, not
+  just a stale "latest" pointer). The original code `await`ed Aladin
+  initialization *before* loading the primary blink view, so this one
+  external outage silently prevented the main feature from ever loading.
+  Fixed so sky-view init runs independently (fire-and-forget) of the
+  blink/spectrum/light-curve flow, and shows an inline "unavailable"
+  message in its own panel on failure rather than throwing.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)

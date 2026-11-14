@@ -40,8 +40,9 @@ class StackedFrame:
 
 
 def _reproject_one(exposure: Exposure, target_wcs: WCS, shape: tuple[int, int]):
-    masked_image = np.where(exposure.flags != 0, np.nan, exposure.image) if config.FLAG_MASK_NONZERO else exposure.image
-    masked_variance = np.where(exposure.flags != 0, np.nan, exposure.variance) if config.FLAG_MASK_NONZERO else exposure.variance
+    bad = (exposure.flags & config.FLAG_BAD_BITMASK) != 0
+    masked_image = np.where(bad, np.nan, exposure.image)
+    masked_variance = np.where(bad, np.nan, exposure.variance)
 
     img_rep, footprint = reproject_interp(
         (masked_image, exposure.wcs), target_wcs, shape_out=shape, order="bilinear"
@@ -50,7 +51,7 @@ def _reproject_one(exposure: Exposure, target_wcs: WCS, shape: tuple[int, int]):
         (masked_variance, exposure.wcs), target_wcs, shape_out=shape, order="bilinear"
     )
     valid = footprint > 0.5
-    flagged_fraction = float(np.mean(exposure.flags != 0)) if exposure.flags.size else 0.0
+    flagged_fraction = float(np.mean(bad)) if exposure.flags.size else 0.0
     return img_rep, var_rep, valid, flagged_fraction
 
 

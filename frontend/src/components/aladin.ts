@@ -9,7 +9,28 @@ declare global {
 let aladinInstance: any = null;
 let pmOverlay: any = null;
 
+/** Never throws: the sky view is a secondary panel, and the CDS CDN it
+ * depends on is an external service outside this app's control (observed
+ * down entirely during development) -- a failure here must not block the
+ * primary blink view from loading. On failure, shows a short message in
+ * the container instead of leaving it blank or crashing page init. */
 export async function initAladin(containerId: string, raDeg: number, decDeg: number, fovDeg: number): Promise<void> {
+  try {
+    await initAladinOrThrow(containerId, raDeg, decDeg, fovDeg);
+  } catch (err) {
+    console.warn("Aladin Lite failed to initialize (sky view will be unavailable):", err);
+    const el = document.getElementById(containerId);
+    if (el) {
+      el.textContent = "Sky view unavailable (external Aladin Lite service unreachable).";
+      el.classList.add("aladin-unavailable");
+    }
+  }
+}
+
+async function initAladinOrThrow(containerId: string, raDeg: number, decDeg: number, fovDeg: number): Promise<void> {
+  if (!window.A) {
+    throw new Error("Aladin Lite script did not load from the CDS CDN");
+  }
   await window.A.init;
   aladinInstance = window.A.aladin(`#${containerId}`, {
     target: `${raDeg} ${decDeg}`,
