@@ -1,0 +1,206 @@
+# SPHEREx Blink
+
+**[Leer en español](README.es.md)**
+
+Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.org/), challenge
+*"Planet X and SPHEREx"* (Advanced track). Team: 2 people, Barranquilla, Colombia.
+
+Enter a sky position — or just the name of a nearby star, brown dwarf, or
+variable — and SPHEREx Blink finds every [NASA SPHEREx](https://spherex.caltech.edu/)
+all-sky infrared exposure that covers that patch of sky, groups them into
+observing epochs, aligns and stacks them, and plays them back as a **blink
+animation**: the same trick astronomers have used since the 1930s to spot
+things that move or change.
+
+## The science behind it
+
+In 1930, Clyde Tombaugh discovered Pluto by "blinking" between two
+photographic plates of the same star field taken days apart on a machine
+called a blink comparator — a star that jumped between frames had to be
+moving, and therefore nearby. NASA's modern citizen-science project
+[Backyard Worlds: Planet 9](https://www.zooniverse.org/projects/marckuchner/backyard-worlds-planet-9)
+revived exactly this technique with WISE infrared images to find cold,
+faint brown dwarfs (including several of the targets built into this tool)
+that are invisible to optical surveys but show up by their motion across
+the sky.
+
+SPHEREx, launched in 2025, surveys the *entire* sky in 102 infrared bands
+roughly every six months. That cadence makes it a natural blink-comparator
+dataset: a high-proper-motion star or brown dwarf visibly shifts between
+SPHEREx epochs, and a variable star visibly changes brightness in place.
+This tool automates the blink comparator for SPHEREx data, and layers on a
+per-epoch spectrum (SPHEREx's whole reason for existing: every pixel has a
+wavelength, thanks to its linear variable filters) and a light curve.
+
+## What it does
+
+- Resolves an object name (Sesame) or raw RA/Dec (decimal or sexagesimal).
+- For named high-proper-motion targets, looks up Gaia DR3 (or, for targets
+  too faint/red for Gaia, a published literature) proper motion and
+  propagates the position to the current SPHEREx observing epoch — without
+  this, a fast-moving target can drift clean out of a small cutout within a
+  few years (see `DECISIONS.md` for exactly how, and why it was harder than
+  it sounds).
+- Queries IRSA's SPHEREx SIA2 service for every exposure covering that
+  position, requests a **server-side cutout** (never a full exposure
+  download), groups exposures into observing epochs, reprojects them onto
+  one common grid, masks flagged pixels, and combines them with a
+  variance-weighted mean.
+- Renders **blink**, **difference** (last epoch − first epoch), **sum**
+  (deep stack), and **RGB composite** (3 wavelength ranges) views, all
+  normalized with one shared asinh/zscale stretch so playback doesn't
+  flicker from frame to frame.
+- Extracts a **spectrum** (flux vs. wavelength, with the real per-pixel
+  wavelength solution for SPHEREx's linear variable filters) and a
+  **light curve** (aperture photometry per epoch) at any clicked position.
+- Ships a bilingual (ES/EN), accessible, mobile-first, low-bandwidth-aware
+  web UI with a side-by-side Aladin Lite sky view (Gaia DR3 + AllWISE
+  overlays, proper-motion arrow), and a built-in "how to spot a moving
+  object" tutorial.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Frontend [frontend/ -- Vite + TypeScript]
+        UI[Blink player, Aladin Lite,\nChart.js spectrum/light curve]
+    end
+
+    subgraph Backend [backend/ -- FastAPI]
+        API[/api/resolve, /api/frames,\n/api/spectrum, /api/lightcurve/]
+        Resolve[resolve.py\nSesame + Gaia DR3 PM]
+        Pipeline[pipeline/\nepochs -> reproject+stack ->\nstretch -> render]
+        Cache[(disk cache\nkeyed by ra,dec,fov,mode,release)]
+    end
+
+    subgraph External [External archives]
+        IRSA[(IRSA SIA2\nSPHEREx DR1 / QR3)]
+        Gaia[(Gaia DR3 TAP)]
+        Sesame[(CDS Sesame)]
+        Aladin[(Aladin Lite / HiPS)]
+    end
+
+    UI -->|HTTP| API
+    API --> Resolve --> Gaia
+    Resolve --> Sesame
+    API --> Pipeline
+    Pipeline -->|server-side cutouts| IRSA
+    Pipeline <--> Cache
+    UI -->|sky view + catalogs| Aladin
+```
+
+`backend/app/config.py` is the single place that holds IRSA base URLs and
+collection names — see "Updating to a new data release" below.
+
+## Required demo targets
+
+All five are pre-cached (see `backend/cache/`, committed to this repo) so
+the demo works even if IRSA is slow or unreachable:
+
+| Target | Why |
+|---|---|
+| Barnard's Star | Highest proper motion of any known star (~10.3"/yr) |
+| Epsilon Indi Ba/Bb | Nearest brown-dwarf pair to the Sun |
+| WISE 0855-0714 | One of the coldest brown dwarfs known |
+| RW Aurigae | Variable young star with a dimming circumstellar disk |
+| R Draconis | Mira-type pulsating variable |
+
+Plus three extras chosen for Colombia/southern-sky visibility and the
+LATAM citizen-science angle (full reasoning in `DECISIONS.md`): **Proxima
+Centauri**, **Luhman 16 AB**, and **UGPS 0722-05**.
+
+## Running locally
+
+### Backend
+
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate   # or: uv venv --python 3.12 .venv
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+VITE_API_BASE=http://localhost:8000 npm run dev
+```
+
+Open the printed localhost URL. The 8 demo targets in the "Explore" gallery
+work offline/instantly from the committed cache; any other RA/Dec or name
+hits IRSA live (slower — a crowded field can mean fetching hundreds of
+individual exposures, which the backend now fetches concurrently, but a
+first, uncached query can still take 1-3+ minutes).
+
+### Docker Compose (both services)
+
+```bash
+docker compose up --build
+```
+
+### Tests and lint
+
+```bash
+# backend
+cd backend && source .venv/bin/activate
+pytest -q
+ruff check app tests
+
+# frontend
+cd frontend
+npm run lint   # eslint + tsc --noEmit
+```
+
+## Building the cache for a new target
+
+```bash
+cd backend && source .venv/bin/activate
+python ../scripts/precache.py --targets barnards-star,proxima-centauri --modes blink,sum
+```
+
+## Deployment
+
+- **Backend**: `backend/Dockerfile` builds a standalone image (any
+  Render/Fly.io-style host that runs a Dockerfile works — expose port
+  `8000`, mount or bake in `backend/cache/` for the pre-cached demo
+  targets).
+- **Frontend**: `frontend/vercel.json` is a static Vite build; set
+  `VITE_API_BASE` to the deployed backend URL at build time.
+
+## Updating to a new SPHEREx data release
+
+Everything data-release-specific lives in `backend/app/config.py`:
+`SIA_COLLECTIONS` (the IRSA SIA2 collection names — confirm the new ones
+with `Irsa.list_collections(servicetype="SIA", filter="spherex")` before
+changing this), `CUTOUT_URL_TEMPLATE`, and `DATA_RELEASE_TAG` (bump this so
+old cache entries don't silently mix with the new release). Then re-run
+`scripts/precache.py`.
+
+## Data credits
+
+- **SPHEREx imagery**: NASA/IPAC Infrared Science Archive (IRSA), SPHEREx
+  mission (JPL/Caltech).
+- **Astrometry / proper motions**: Gaia DR3 (ESA/Gaia/DPAC); for a handful
+  of targets too faint/red for Gaia, published literature proper motions
+  (cited per-target in `backend/app/targets.py`).
+- **Catalog overlays**: Gaia DR3, AllWISE (NASA/IPAC).
+- **Sky view**: Aladin Lite (CDS, Observatoire astronomique de
+  Strasbourg).
+
+## Limitations
+
+- Live (non-cached) queries against crowded or "deep"-survey fields can
+  take one to several minutes on first request — this is IRSA archive
+  latency across potentially hundreds of individual exposures, not
+  something client-side caching can hide on a cold cache.
+- The name→Gaia DR3 cross-match uses a brightness/proximity heuristic (see
+  `DECISIONS.md`) that is tuned against this tool's own preset targets; an
+  arbitrary free-text name in a crowded field could in principle be
+  mismatched.
+- Proper-motion propagation is linear (tangent-plane), not a full 3D
+  space-motion integral — accurate to well under one SPHEREx pixel over the
+  baselines involved here, but not suitable for sub-arcsecond astrometry.
+- RGB composite mode needs at least 3 of the 6 SPHEREx detector bands
+  present in the queried field; difference mode needs at least 2 epochs.

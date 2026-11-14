@@ -23,6 +23,14 @@ class UpstreamUnavailable(RuntimeError):
     """Raised when an external service fails after all retries."""
 
 
+class NonRetryable(RuntimeError):
+    """Raised by a call to signal "this will never succeed on retry" (e.g. a
+    4xx client error other than 429) -- fails immediately instead of
+    burning through the full backoff schedule for nothing. A live precache
+    run hit a permanent 422 from IRSA for one specific exposure; without
+    this, each one costs ~60s of pure waste across 6 doomed retries."""
+
+
 def with_backoff(
     fn: Callable[[], T],
     *,
@@ -34,7 +42,10 @@ def with_backoff(
     for attempt in range(max_retries):
         try:
             return fn()
-        except Exception as exc:  # noqa: BLE001 - we deliberately retry anything
+        except NonRetryable as exc:
+            logger.warning("%s failed permanently: %s", what, exc)
+            raise UpstreamUnavailable(f"{what} failed: {exc}") from exc
+        except Exception as exc:  # noqa: BLE001 - we deliberately retry anything else
             last_exc = exc
             delay = base_seconds * (2**attempt)
             logger.warning(

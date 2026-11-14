@@ -13,16 +13,27 @@ from __future__ import annotations
 import io
 import logging
 import re
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
 import numpy as np
 import requests
+from astropy import log as _astropy_log
 from astropy.io import fits
+from astropy.utils.exceptions import AstropyWarning
 from astropy.wcs import WCS
 
 from . import config
-from .net import UpstreamUnavailable, with_backoff
+from .net import NonRetryable, UpstreamUnavailable, with_backoff
+
+# SPHEREx L2 headers carry SIP coefficients without a "-SIP" CTYPE suffix;
+# astropy.wcs applies them correctly regardless and just warns every single
+# time, which floods logs across hundreds of exposures per field for a
+# non-issue we already know about. astropy duplicates warnings through its
+# own log handler too, so both need silencing.
+warnings.filterwarnings("ignore", category=AstropyWarning)
+_astropy_log.setLevel("ERROR")
 
 logger = logging.getLogger("spherex_blink.irsa")
 
@@ -124,6 +135,12 @@ def fetch_cutout(meta: ExposureMeta, ra_deg: float, dec_deg: float, fov_arcmin: 
 
     def _call() -> bytes:
         resp = requests.get(url, timeout=config.HTTP_TIMEOUT_SECONDS)
+        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+            # A 4xx other than 429 (rate limited) means this specific
+            # request is malformed or this specific exposure is
+            # unavailable -- retrying the identical request will never
+            # change that.
+            raise NonRetryable(f"HTTP {resp.status_code} for {meta.obs_id}: {resp.text[:200]}")
         resp.raise_for_status()
         return resp.content
 
