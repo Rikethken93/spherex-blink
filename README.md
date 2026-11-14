@@ -167,6 +167,22 @@ python ../scripts/precache.py --targets barnards-star,proxima-centauri --modes b
   Render/Fly.io-style host that runs a Dockerfile works — expose port
   `8000`, mount or bake in `backend/cache/` for the pre-cached demo
   targets).
+  - **Render/Fly.io**: point either at `backend/Dockerfile`; both auto-detect
+    and build it. Set `SPHEREX_BLINK_CACHE_DIR` only if you want the cache
+    outside the image (otherwise the committed `backend/cache/` bakes in).
+  - **Google Cloud Run**: builds from the same Dockerfile, no changes needed —
+    ```bash
+    cd backend
+    gcloud run deploy spherex-blink-backend \
+      --source . \
+      --region us-central1 \
+      --allow-unauthenticated \
+      --port 8000
+    ```
+    `--source .` has Cloud Build build `backend/Dockerfile` directly; swap in
+    `gcloud builds submit --tag <region>-docker.pkg.dev/<project>/<repo>/spherex-blink-backend`
+    + `gcloud run deploy ... --image <that tag>` if you'd rather build once
+    and deploy the resulting image explicitly.
 - **Frontend**: `frontend/vercel.json` is a static Vite build; set
   `VITE_API_BASE` to the deployed backend URL at build time.
 

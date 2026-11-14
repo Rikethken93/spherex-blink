@@ -178,6 +178,17 @@ python ../scripts/precache.py --targets barnards-star,proxima-centauri --modes b
   (cualquier host al estilo Render/Fly.io que ejecute un Dockerfile
   funciona — expone el puerto `8000`, monta o incluye `backend/cache/`
   para los objetivos de demostración precargados).
+  - **Render/Fly.io**: apunta a `backend/Dockerfile`; ambos lo detectan y
+    construyen automáticamente.
+  - **Google Cloud Run**: construye desde el mismo Dockerfile, sin cambios —
+    ```bash
+    cd backend
+    gcloud run deploy spherex-blink-backend \
+      --source . \
+      --region us-central1 \
+      --allow-unauthenticated \
+      --port 8000
+    ```
 - **Frontend**: `frontend/vercel.json` es una build estática de Vite;
   define `VITE_API_BASE` con la URL del backend desplegado al momento de
   construir.

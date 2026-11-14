@@ -222,5 +222,63 @@ format: **Decision** — Alternatives considered — Reason.
   (each already operated on a single already-correct stacked image, never
   needed to separate by band after stacking).
 
+## Submission-polish requirements (added mid-build by the team)
+
+- **UI language default changed from "Spanish for es-\* browsers" to
+  "always English unless toggled."** — Alternative: keep the original
+  locale-auto-detect behavior (which was itself a deliberate, documented
+  earlier decision for the LATAM angle). — Reason: the team explicitly
+  asked that judges never land on Spanish by accident because of their
+  own browser's locale setting. Spanish is still a full translation, one
+  click (or `?lang=es`) away — this only changes what happens with no
+  explicit signal from the user. Updated the one place in `SUBMISSION.md`
+  that described the old auto-detect behavior to match.
+
+- **AI-assistance disclosure added to README.md, README.es.md,
+  SUBMISSION.md, a short header comment in each main source entry point
+  (`backend/app/main.py`, `backend/app/service.py`, `backend/app/
+  config.py`, `frontend/src/main.ts`, `scripts/precache.py`), and
+  `ai-assisted` in both package manifests (`frontend/package.json`
+  description/keywords; new `backend/pyproject.toml` added purely for
+  this metadata, since requirements.txt has no description/keywords
+  field and the backend previously had no PEP 621 manifest at all).** —
+  Reason: the team wants this stated plainly and in multiple places a
+  judge might look, not buried in one footnote. The wording is specific
+  on purpose (code written with Claude Code under the team's direction;
+  concept, requirements, and design decisions are the team's own) rather
+  than a vague "AI-generated" label, because that's the actual, accurate
+  division of labor on this project.
+
+- **NASA logo/insignia audit: no changes needed.** — Checked every image
+  file in the repo (only `favicon.svg`, the default Vite scaffold mark,
+  unrelated to NASA) and grepped all docs/code for logo/insignia/seal
+  references; every "NASA" mention in the repo is already a plain-text
+  credit (e.g. "NASA/IPAC"), never an image or embedded mark. Documented
+  here rather than silently assuming compliance, since the team asked for
+  an explicit audit.
+
+- **SUBMISSION.md's data-credit section split into "NASA Data" and "Space
+  Agency Partner Data and Other References."** — NASA Data: SPHEREx and
+  WISE/AllWISE, both NASA missions accessed via IRSA. Partner/Other:
+  Gaia DR3 (ESA), Aladin Lite (CDS/Strasbourg, not a space agency), the
+  open-source astropy/astroquery/reproject stack, and the literature
+  proper-motion papers used for the four Gaia-invisible brown dwarfs.
+
+- **`docs/DEMO_SCRIPT.md` is a separate file from the narrative demo
+  script already embedded in `SUBMISSION.md`.** — Alternative: replace
+  the existing script in SUBMISSION.md in place. — Reason: the team asked
+  for a specific timestamped structure (0:00 team / 0:02 challenge / 0:05
+  name+tagline / 0:10 live demo on WISE 0855 / 0:20 future impact) plus
+  subtitle lines and a 7-slide alternative -- different enough in
+  structure and purpose (a shot list for filming, not a narrative pitch)
+  that it earns its own file; SUBMISSION.md's existing walkthrough
+  (centered on Barnard's Star) stays as the written narrative version.
+
+- **Cloud Run added as a third deploy target, alongside Render/Fly.io, not
+  a replacement.** — Reason: `backend/Dockerfile` already builds a
+  standard container, so `gcloud run deploy` from it is close to free to
+  document and gives the team a third concrete, judge-checkable option
+  without committing to any one platform.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)
