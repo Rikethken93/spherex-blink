@@ -112,7 +112,7 @@ def frames(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     # cache_key_dir is already relative to CACHE_DIR, e.g. "frames/<hash>",
-    # and the StaticFiles mount below serves CACHE_DIR at /cache.
+    # and serve_cache_file above serves CACHE_DIR at /cache.
     base = f"/cache/{result['cache_key_dir']}"
     result["frame_urls"] = [f"{base}/{name}" for name in result["frames"]]
     return result
