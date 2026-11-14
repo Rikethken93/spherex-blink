@@ -147,20 +147,32 @@ def get_frames(
 
 
 def get_spectrum(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV_DEFAULT_ARCMIN) -> list[dict]:
+    cache_dir = cache.spectrum_cache_dir(ra_deg, dec_deg, fov_arcmin)
+    cached = cache.read_json(cache_dir)
+    if cached is not None:
+        return cached
+
     metas = query_exposure_metadata(ra_deg, dec_deg, fov_arcmin)
     if not metas:
         raise NoCoverageError("No SPHEREx coverage yet at this position.")
     exposures = fetch_exposures(metas, ra_deg, dec_deg, fov_arcmin)
-    points = extract_spectrum(exposures, ra_deg, dec_deg)
-    return [p.__dict__ for p in points]
+    points = [p.__dict__ for p in extract_spectrum(exposures, ra_deg, dec_deg)]
+    cache.write_json(cache_dir, points)
+    return points
 
 
 def get_lightcurve(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV_DEFAULT_ARCMIN) -> list[dict]:
+    cache_dir = cache.lightcurve_cache_dir(ra_deg, dec_deg, fov_arcmin)
+    cached = cache.read_json(cache_dir)
+    if cached is not None:
+        return cached
+
     metas = query_exposure_metadata(ra_deg, dec_deg, fov_arcmin)
     if not metas:
         raise NoCoverageError("No SPHEREx coverage yet at this position.")
     exposures = fetch_exposures(metas, ra_deg, dec_deg, fov_arcmin)
     epochs = group_into_epochs(exposures, lambda e: e.mjd)
     stacked_epochs = [stack_epoch(epoch, ra_deg, dec_deg, fov_arcmin) for epoch in epochs]
-    points = build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)
-    return [p.__dict__ for p in points]
+    points = [p.__dict__ for p in build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)]
+    cache.write_json(cache_dir, points)
+    return points

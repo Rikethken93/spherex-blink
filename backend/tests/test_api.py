@@ -154,3 +154,39 @@ def test_lightcurve_endpoint(mock_coverage):
     assert resp.status_code == 200
     body = resp.json()
     assert len(body["points"]) == 3
+
+
+def test_spectrum_is_cached_and_does_not_requery_on_second_call(mock_coverage, monkeypatch):
+    calls = {"n": 0}
+    real_query = service.query_exposure_metadata
+
+    def counting_query(*a, **k):
+        calls["n"] += 1
+        return real_query(*a, **k)
+
+    monkeypatch.setattr(service, "query_exposure_metadata", counting_query)
+
+    first = client.get("/api/spectrum", params={"ra": "180.0", "dec": "10.0"})
+    second = client.get("/api/spectrum", params={"ra": "180.0", "dec": "10.0"})
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == second.json()
+    assert calls["n"] == 1  # the second call must be a cache hit, not a re-query
+
+
+def test_lightcurve_is_cached_and_does_not_requery_on_second_call(mock_coverage, monkeypatch):
+    calls = {"n": 0}
+    real_query = service.query_exposure_metadata
+
+    def counting_query(*a, **k):
+        calls["n"] += 1
+        return real_query(*a, **k)
+
+    monkeypatch.setattr(service, "query_exposure_metadata", counting_query)
+
+    first = client.get("/api/lightcurve", params={"ra": "180.0", "dec": "10.0"})
+    second = client.get("/api/lightcurve", params={"ra": "180.0", "dec": "10.0"})
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == second.json()
+    assert calls["n"] == 1

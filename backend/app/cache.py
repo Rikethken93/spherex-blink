@@ -34,6 +34,14 @@ def frames_cache_dir(ra_deg: float, dec_deg: float, fov_arcmin: float, mode: str
     )
 
 
+def spectrum_cache_dir(ra_deg: float, dec_deg: float, fov_arcmin: float) -> str:
+    return _entry_dir("spectrum", ra=round(ra_deg, 5), dec=round(dec_deg, 5), fov=round(fov_arcmin, 2))
+
+
+def lightcurve_cache_dir(ra_deg: float, dec_deg: float, fov_arcmin: float) -> str:
+    return _entry_dir("lightcurve", ra=round(ra_deg, 5), dec=round(dec_deg, 5), fov=round(fov_arcmin, 2))
+
+
 def read_json(directory: str, name: str = "meta.json"):
     path = os.path.join(directory, name)
     if not os.path.exists(path):
