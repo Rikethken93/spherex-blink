@@ -202,5 +202,25 @@ format: **Decision** — Alternatives considered — Reason.
   from a shared URL; a clear `error.bad_coords` message replaces the
   silent fallback to `(0, 0)` on genuinely unparseable input.
 
+- **RGB composite mode builds a separate single-band deep stack per
+  channel, rather than reusing an already-stacked epoch image.** —
+  Reason, found by reasoning through the data flow (not yet by visual
+  inspection at the time of the fix): `stack_epoch` combines *every*
+  exposure handed to it -- across all detectors present -- into one
+  variance-weighted image; it has no concept of "band". The first RGB
+  implementation picked "whichever epoch happens to contain detector X"
+  and reused that epoch's `.image` per channel, but that image was
+  already an all-detectors blend, so all three channels ended up
+  identical (a grayscale image masquerading as a composite). Fixed by
+  filtering the raw exposures to one detector at a time and calling
+  `stack_epoch` fresh for each of the three chosen bands. A regression
+  test (`test_rgb_mode_uses_a_distinct_stack_per_band`) asserts the three
+  channel values at a synthetic bright pixel are actually different.
+  Because this changed RGB's output, pre-cached RGB entries created
+  before the fix had to be discarded and are not part of the committed
+  demo cache; blink/sum/difference/spectrum/light-curve were unaffected
+  (each already operated on a single already-correct stacked image, never
+  needed to separate by band after stacking).
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)
