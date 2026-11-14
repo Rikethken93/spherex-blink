@@ -1,0 +1,86 @@
+{
+  "ra_deg": 76.95609044053892,
+  "dec_deg": 30.401121857671264,
+  "fov_arcmin": 3.0,
+  "mode": "difference",
+  "detector": null,
+  "wl_min_um": null,
+  "wl_max_um": null,
+  "frames": [
+    "frame_0.png"
+  ],
+  "cache_key_dir": "frames/eb65c8bbde3407eefa3520fd",
+  "epochs": [
+    {
+      "mjd_min": 60919.419646597,
+      "mjd_max": 60938.232057836,
+      "mjd_mean": 60928.34924496068,
+      "n_exposures": 108,
+      "flag_fraction": 0.046914789168408806,
+      "detectors": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "wavelengths_um": [
+        0.931,
+        1.377,
+        2.032,
+        3.125,
+        4.121,
+        4.711
+      ]
+    },
+    {
+      "mjd_min": 61091.719615949,
+      "mjd_max": 61111.002086979,
+      "mjd_mean": 61102.25438989044,
+      "n_exposures": 114,
+      "flag_fraction": 0.039516891172188755,
+      "detectors": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "wavelengths_um": [
+        0.931,
+        1.377,
+        2.032,
+        3.125,
+        4.121,
+        4.711
+      ]
+    },
+    {
+      "mjd_min": 61285.097169329,
+      "mjd_max": 61299.895896794,
+      "mjd_mean": 61294.63332693645,
+      "n_exposures": 112,
+      "flag_fraction": 0.053982211968240504,
+      "detectors": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "wavelengths_um": [
+        0.931,
+        1.377,
+        2.032,
+        3.125,
+        4.121,
+        4.711
+      ]
+    }
+  ],
+  "n_exposures_total": 334,
+  "cache_hit": false
+}

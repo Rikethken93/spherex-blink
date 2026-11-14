@@ -62,22 +62,22 @@ wavelength, thanks to its linear variable filters) and a light curve.
 
 ```mermaid
 flowchart LR
-    subgraph Frontend [frontend/ -- Vite + TypeScript]
-        UI[Blink player, Aladin Lite,\nChart.js spectrum/light curve]
+    subgraph Frontend ["frontend/ (Vite + TypeScript)"]
+        UI["Blink player, Aladin Lite,<br/>Chart.js spectrum/light curve"]
     end
 
-    subgraph Backend [backend/ -- FastAPI]
-        API[/api/resolve, /api/frames,\n/api/spectrum, /api/lightcurve/]
-        Resolve[resolve.py\nSesame + Gaia DR3 PM]
-        Pipeline[pipeline/\nepochs -> reproject+stack ->\nstretch -> render]
-        Cache[(disk cache\nkeyed by ra,dec,fov,mode,release)]
+    subgraph Backend ["backend/ (FastAPI)"]
+        API["/api/resolve, /api/frames,<br/>/api/spectrum, /api/lightcurve"]
+        Resolve["resolve.py<br/>Sesame + Gaia DR3 PM"]
+        Pipeline["pipeline/<br/>epochs → reproject+stack →<br/>stretch → render"]
+        Cache[("disk cache<br/>keyed by ra,dec,fov,mode,release")]
     end
 
-    subgraph External [External archives]
-        IRSA[(IRSA SIA2\nSPHEREx DR1 / QR3)]
-        Gaia[(Gaia DR3 TAP)]
-        Sesame[(CDS Sesame)]
-        Aladin[(Aladin Lite / HiPS)]
+    subgraph External ["External archives"]
+        IRSA[("IRSA SIA2<br/>SPHEREx DR1 / QR3")]
+        Gaia[("Gaia DR3 TAP")]
+        Sesame[("CDS Sesame")]
+        Aladin[("Aladin Lite / HiPS")]
     end
 
     UI -->|HTTP| API

@@ -69,22 +69,22 @@ lineal) y una curva de luz.
 
 ```mermaid
 flowchart LR
-    subgraph Frontend [frontend/ -- Vite + TypeScript]
-        UI[Reproductor de parpadeo, Aladin Lite,\nespectro y curva de luz con Chart.js]
+    subgraph Frontend ["frontend/ (Vite + TypeScript)"]
+        UI["Reproductor de parpadeo, Aladin Lite,<br/>espectro y curva de luz con Chart.js"]
     end
 
-    subgraph Backend [backend/ -- FastAPI]
-        API[/api/resolve, /api/frames,\n/api/spectrum, /api/lightcurve/]
-        Resolve[resolve.py\nSesame + movimiento propio Gaia DR3]
-        Pipeline[pipeline/\nepocas -> reproyección+apilado ->\najuste -> render]
-        Cache[(caché en disco\nclave: ra,dec,fov,modo,release)]
+    subgraph Backend ["backend/ (FastAPI)"]
+        API["/api/resolve, /api/frames,<br/>/api/spectrum, /api/lightcurve"]
+        Resolve["resolve.py<br/>Sesame + movimiento propio Gaia DR3"]
+        Pipeline["pipeline/<br/>épocas → reproyección+apilado →<br/>ajuste → render"]
+        Cache[("caché en disco<br/>clave: ra,dec,fov,modo,release")]
     end
 
-    subgraph External [Archivos externos]
-        IRSA[(IRSA SIA2\nSPHEREx DR1 / QR3)]
-        Gaia[(Gaia DR3 TAP)]
-        Sesame[(CDS Sesame)]
-        Aladin[(Aladin Lite / HiPS)]
+    subgraph External ["Archivos externos"]
+        IRSA[("IRSA SIA2<br/>SPHEREx DR1 / QR3")]
+        Gaia[("Gaia DR3 TAP")]
+        Sesame[("CDS Sesame")]
+        Aladin[("Aladin Lite / HiPS")]
     end
 
     UI -->|HTTP| API
