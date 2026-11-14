@@ -124,8 +124,9 @@ austral y el ángulo de ciencia ciudadana LATAM (razonamiento completo en
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate   # o: uv venv --python 3.12 .venv
-pip install -r requirements.txt
+python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+# o, con uv (los venv de uv no incluyen pip, usa `uv pip` en vez de `pip`):
+#   uv venv --python 3.12 .venv && source .venv/bin/activate && uv pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 

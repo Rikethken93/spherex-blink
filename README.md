@@ -115,8 +115,9 @@ Centauri**, **Luhman 16 AB**, and **UGPS 0722-05**.
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate   # or: uv venv --python 3.12 .venv
-pip install -r requirements.txt
+python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+# or, with uv (uv venvs don't bundle pip, so use `uv pip` instead of plain `pip`):
+#   uv venv --python 3.12 .venv && source .venv/bin/activate && uv pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
