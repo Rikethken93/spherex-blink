@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS
+.DS_Store
+
+# Local env
+.env
+.env.local
+
+# Keep the precached demo data, but not ad-hoc local scratch cache entries
+backend/cache/.tmp/
