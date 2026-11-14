@@ -220,3 +220,16 @@ la nueva versión). Luego vuelve a ejecutar `scripts/precache.py`.
 - El modo compuesto RGB necesita al menos 3 de las 6 bandas de detector de
   SPHEREx presentes en el campo consultado; el modo diferencia necesita al
   menos 2 épocas.
+- El panel de vista del cielo (Aladin Lite) se degrada con elegancia pero
+  depende de un CDN externo (`aladin.cds.unistra.fr`) fuera del control de
+  este proyecto. Durante el desarrollo, ese CDN sufrió una caída total
+  (cada versión fija de la API bajo `/AladinLite/api/v3/` devolvía un error
+  "Page unavailable" de marca propia); la aplicación detecta esto y muestra
+  un mensaje breve en ese panel en lugar de romper el resto de la interfaz,
+  pero la vista del cielo en sí no está disponible hasta que el CDN se
+  recupere. El modo de bajo consumo de datos la omite por completo.
+- La construcción de la imagen Docker no se verificó con un `docker build`
+  real en este entorno (no hay demonio de Docker disponible); el Dockerfile
+  sigue un patrón estándar `python:3.12-slim` + pip-install y debería
+  construirse sin problemas, pero considérala revisada y no ejecutada hasta
+  confirmarlo.
