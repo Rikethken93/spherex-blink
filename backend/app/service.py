@@ -47,25 +47,20 @@ def _filter_metadata(
     return out
 
 
-def get_frames(
+def _fetch_and_stack(
     ra_deg: float,
     dec_deg: float,
     fov_arcmin: float,
-    mode: str,
     detector: int | None = None,
     wl_min: float | None = None,
     wl_max: float | None = None,
-) -> dict:
-    validate_request(ra_deg, dec_deg, fov_arcmin, mode)
-
-    cache_dir = cache.frames_cache_dir(
-        ra_deg, dec_deg, fov_arcmin, mode, str(detector), str(wl_min), str(wl_max)
-    )
-    cached = cache.read_json(cache_dir)
-    if cached is not None:
-        cached["cache_hit"] = True
-        return cached
-
+):
+    """Query + fetch + epoch-group + reproject-stack once. Shared by
+    get_frames/get_spectrum/get_lightcurve (each still caches its own
+    final product independently, for the live API) and by
+    scripts/precache.py (which calls this directly to fetch a target's
+    exposures exactly once and derive all three cached products from it,
+    rather than paying for three independent full fetches per target)."""
     metas = query_exposure_metadata(ra_deg, dec_deg, fov_arcmin)
     metas = _filter_metadata(metas, detector, wl_min, wl_max)
     if not metas:
@@ -84,7 +79,10 @@ def get_frames(
 
     epochs = group_into_epochs(exposures, lambda e: e.mjd)
     stacked_epochs = [stack_epoch(epoch, ra_deg, dec_deg, fov_arcmin) for epoch in epochs]
+    return exposures, epochs, stacked_epochs
 
+
+def _epoch_metadata(epochs, stacked_epochs) -> list[dict]:
     epoch_meta = []
     for epoch, stacked in zip(epochs, stacked_epochs):
         summary = epoch_summary(epoch, lambda e: e.mjd)
@@ -96,7 +94,10 @@ def get_frames(
                 "wavelengths_um": stacked.wavelengths_um,
             }
         )
+    return epoch_meta
 
+
+def _render_mode(mode: str, stacked_epochs, cache_dir: str) -> list[str]:
     frame_names: list[str] = []
     if mode == "blink":
         pngs = render_blink_frames([s.image for s in stacked_epochs])
@@ -127,6 +128,31 @@ def get_frames(
         png = render_rgb(band_image(hi), band_image(mid), band_image(lo))
         cache.write_bytes(cache_dir, "frame_0.png", png)
         frame_names.append("frame_0.png")
+    return frame_names
+
+
+def get_frames(
+    ra_deg: float,
+    dec_deg: float,
+    fov_arcmin: float,
+    mode: str,
+    detector: int | None = None,
+    wl_min: float | None = None,
+    wl_max: float | None = None,
+) -> dict:
+    validate_request(ra_deg, dec_deg, fov_arcmin, mode)
+
+    cache_dir = cache.frames_cache_dir(
+        ra_deg, dec_deg, fov_arcmin, mode, str(detector), str(wl_min), str(wl_max)
+    )
+    cached = cache.read_json(cache_dir)
+    if cached is not None:
+        cached["cache_hit"] = True
+        return cached
+
+    exposures, epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin, detector, wl_min, wl_max)
+    epoch_meta = _epoch_metadata(epochs, stacked_epochs)
+    frame_names = _render_mode(mode, stacked_epochs, cache_dir)
 
     result = {
         "ra_deg": ra_deg,
@@ -152,10 +178,7 @@ def get_spectrum(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV_D
     if cached is not None:
         return cached
 
-    metas = query_exposure_metadata(ra_deg, dec_deg, fov_arcmin)
-    if not metas:
-        raise NoCoverageError("No SPHEREx coverage yet at this position.")
-    exposures = fetch_exposures(metas, ra_deg, dec_deg, fov_arcmin)
+    exposures, _epochs, _stacked = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
     points = [p.__dict__ for p in extract_spectrum(exposures, ra_deg, dec_deg)]
     cache.write_json(cache_dir, points)
     return points
@@ -167,12 +190,49 @@ def get_lightcurve(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV
     if cached is not None:
         return cached
 
-    metas = query_exposure_metadata(ra_deg, dec_deg, fov_arcmin)
-    if not metas:
-        raise NoCoverageError("No SPHEREx coverage yet at this position.")
-    exposures = fetch_exposures(metas, ra_deg, dec_deg, fov_arcmin)
-    epochs = group_into_epochs(exposures, lambda e: e.mjd)
-    stacked_epochs = [stack_epoch(epoch, ra_deg, dec_deg, fov_arcmin) for epoch in epochs]
+    _exposures, _epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
     points = [p.__dict__ for p in build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)]
     cache.write_json(cache_dir, points)
     return points
+
+
+def precache_all(ra_deg: float, dec_deg: float, fov_arcmin: float, modes: list[str]) -> dict:
+    """Used only by scripts/precache.py: fetch a target's exposures exactly
+    once and populate the frames (every requested mode), spectrum, and
+    light-curve caches from that single fetch -- each of get_frames,
+    get_spectrum and get_lightcurve independently re-fetches on a cold
+    cache (correct for an arbitrary live query), which would cost three
+    full IRSA fetches per target here for no benefit, since all three are
+    about to be cached for the exact same position anyway."""
+    exposures, epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
+    epoch_meta = _epoch_metadata(epochs, stacked_epochs)
+
+    results: dict[str, object] = {"n_exposures_total": len(exposures), "n_epochs": len(epochs)}
+
+    for mode in modes:
+        cache_dir = cache.frames_cache_dir(ra_deg, dec_deg, fov_arcmin, mode, "None", "None", "None")
+        try:
+            frame_names = _render_mode(mode, stacked_epochs, cache_dir)
+        except InvalidRequestError as exc:
+            results[f"mode_{mode}"] = f"skipped: {exc}"
+            continue
+        frames_result = {
+            "ra_deg": ra_deg, "dec_deg": dec_deg, "fov_arcmin": fov_arcmin, "mode": mode,
+            "detector": None, "wl_min_um": None, "wl_max_um": None,
+            "frames": frame_names, "cache_key_dir": os.path.relpath(cache_dir, config.CACHE_DIR),
+            "epochs": epoch_meta, "n_exposures_total": len(exposures), "cache_hit": False,
+        }
+        cache.write_json(cache_dir, frames_result)
+        results[f"mode_{mode}"] = len(frame_names)
+
+    spectrum_dir = cache.spectrum_cache_dir(ra_deg, dec_deg, fov_arcmin)
+    spectrum_points = [p.__dict__ for p in extract_spectrum(exposures, ra_deg, dec_deg)]
+    cache.write_json(spectrum_dir, spectrum_points)
+    results["spectrum_points"] = len(spectrum_points)
+
+    lightcurve_dir = cache.lightcurve_cache_dir(ra_deg, dec_deg, fov_arcmin)
+    lightcurve_points = [p.__dict__ for p in build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)]
+    cache.write_json(lightcurve_dir, lightcurve_points)
+    results["lightcurve_points"] = len(lightcurve_points)
+
+    return results

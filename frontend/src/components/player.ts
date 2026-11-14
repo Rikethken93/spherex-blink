@@ -2,6 +2,9 @@ import { t } from "../i18n/i18n";
 
 export interface PlayerCallbacks {
   onFrameChange?: (index: number) => void;
+  /** Fired on click with the click position as a fraction of the image
+   * (0,0 = top-left, 1,1 = bottom-right), for mapping to a sky position. */
+  onImageClick?: (fracX: number, fracY: number) => void;
 }
 
 export class BlinkPlayer {
@@ -21,6 +24,13 @@ export class BlinkPlayer {
     this.img = document.createElement("img");
     this.img.className = "blink-frame";
     this.img.alt = "";
+    this.img.style.cursor = "crosshair";
+    this.img.addEventListener("click", (e) => {
+      const rect = this.img.getBoundingClientRect();
+      const fracX = (e.clientX - rect.left) / rect.width;
+      const fracY = (e.clientY - rect.top) / rect.height;
+      this.callbacks.onImageClick?.(fracX, fracY);
+    });
     container.appendChild(this.img);
   }
 

@@ -16,11 +16,11 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
-from app import config, service  # noqa: E402
-from app.errors import NoCoverageError  # noqa: E402
-from app.net import UpstreamUnavailable  # noqa: E402
-from app.resolve import resolve_target_with_fallback  # noqa: E402
-from app.targets import ALL_TARGETS, TARGETS_BY_KEY  # noqa: E402
+from app import config, service
+from app.errors import NoCoverageError
+from app.net import UpstreamUnavailable
+from app.resolve import resolve_target_with_fallback
+from app.targets import ALL_TARGETS, TARGETS_BY_KEY
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("precache")
@@ -48,35 +48,25 @@ def precache_target(key: str, modes: list[str]) -> bool:
         logger.warning("%s: %s", key, resolved.warning)
 
     ok = True
-    for mode in modes:
-        try:
-            result = service.get_frames(resolved.ra_deg, resolved.dec_deg, DEFAULT_FOV_ARCMIN, mode)
-            logger.info(
-                "  mode=%-10s epochs=%d exposures=%d frames=%d",
-                mode, len(result["epochs"]), result["n_exposures_total"], len(result["frames"]),
-            )
-        except NoCoverageError as exc:
-            logger.warning("  mode=%-10s NO COVERAGE: %s", mode, exc)
-            ok = False
-        except UpstreamUnavailable as exc:
-            logger.error("  mode=%-10s FAILED: %s", mode, exc)
-            ok = False
-        except Exception as exc:  # noqa: BLE001
-            logger.error("  mode=%-10s FAILED (%s): %s", mode, type(exc).__name__, exc)
-            ok = False
-
     try:
-        spectrum = service.get_spectrum(resolved.ra_deg, resolved.dec_deg, DEFAULT_FOV_ARCMIN)
-        logger.info("  spectrum: %d points", len(spectrum))
-    except (NoCoverageError, UpstreamUnavailable) as exc:
-        logger.warning("  spectrum FAILED: %s", exc)
+        # One fetch, shared across every mode plus spectrum and light curve
+        # -- avoids paying for a separate full IRSA fetch per product.
+        result = service.precache_all(resolved.ra_deg, resolved.dec_deg, DEFAULT_FOV_ARCMIN, modes)
+        logger.info(
+            "  exposures=%d epochs=%d spectrum=%d points lightcurve=%d points",
+            result["n_exposures_total"], result["n_epochs"],
+            result["spectrum_points"], result["lightcurve_points"],
+        )
+        for mode in modes:
+            logger.info("  mode=%-10s frames=%s", mode, result.get(f"mode_{mode}"))
+    except NoCoverageError as exc:
+        logger.warning("  NO COVERAGE: %s", exc)
         ok = False
-
-    try:
-        lightcurve = service.get_lightcurve(resolved.ra_deg, resolved.dec_deg, DEFAULT_FOV_ARCMIN)
-        logger.info("  lightcurve: %d points", len(lightcurve))
-    except (NoCoverageError, UpstreamUnavailable) as exc:
-        logger.warning("  lightcurve FAILED: %s", exc)
+    except UpstreamUnavailable as exc:
+        logger.error("  FAILED: %s", exc)
+        ok = False
+    except Exception as exc:  # noqa: BLE001
+        logger.error("  FAILED (%s): %s", type(exc).__name__, exc)
         ok = False
 
     return ok

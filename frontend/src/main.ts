@@ -13,6 +13,7 @@ import { setupTutorialDialog } from "./components/tutorial";
 
 let state: AppState = readStateFromUrl();
 let currentTargets: TargetInfo[] = [];
+let currentCenter: { ra: number; dec: number; fov: number } | null = null;
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -24,7 +25,27 @@ const modeSelect = el<HTMLSelectElement>("mode-select");
 const blinkContainer = el<HTMLDivElement>("blink-container");
 const metadataHost = el<HTMLDivElement>("metadata-host");
 
-const player = new BlinkPlayer(blinkContainer);
+const player = new BlinkPlayer(blinkContainer, {
+  onImageClick: (fracX, fracY) => void handleImageClick(fracX, fracY),
+});
+
+async function handleImageClick(fracX: number, fracY: number): Promise<void> {
+  if (!currentCenter) return;
+  const { ra, dec, fov } = currentCenter;
+  const fovDeg = fov / 60;
+  // North-up, east-left convention (matches the backend's render.py,
+  // which flips the array vertically and uses a negative RA CDELT): left
+  // edge = highest RA, top edge = highest Dec.
+  const cosDec = Math.max(Math.cos((dec * Math.PI) / 180), 1e-6);
+  const clickRa = ra + (0.5 - fracX) * fovDeg / cosDec;
+  const clickDec = dec + (0.5 - fracY) * fovDeg;
+  try {
+    const spectrum = await getSpectrum(clickRa, clickDec, fov);
+    renderSpectrum(el<HTMLCanvasElement>("spectrum-canvas"), spectrum.points);
+  } catch {
+    /* clicking off-source or outside coverage just yields an empty/failed spectrum */
+  }
+}
 
 function setStatus(message: string): void {
   statusEl.textContent = message;
@@ -49,13 +70,12 @@ async function loadAndShow(raDeg: number, decDeg: number, fovArcmin: number, mod
         (result.cache_hit ? " (cached)" : ""),
     );
     recenter(raDeg, decDeg, fovArcmin / 60);
+    // Used by handleImageClick to convert a click position back to a sky
+    // position; the spectrum view itself only loads on click (see below),
+    // starting with the target center so the panel isn't empty at first.
+    currentCenter = { ra: raDeg, dec: decDeg, fov: fovArcmin };
+    void handleImageClick(0.5, 0.5);
 
-    try {
-      const spectrum = await getSpectrum(raDeg, decDeg, fovArcmin);
-      renderSpectrum(el<HTMLCanvasElement>("spectrum-canvas"), spectrum.points);
-    } catch {
-      /* spectrum is a bonus view; frames are the main event */
-    }
     try {
       const lightcurve = await getLightCurve(raDeg, decDeg, fovArcmin);
       renderLightCurve(el<HTMLCanvasElement>("lightcurve-canvas"), lightcurve.points);
