@@ -1,3 +1,5 @@
+import { t } from "../i18n/i18n";
+
 // Aladin Lite v3 is loaded from the CDS CDN (see index.html) and exposes a
 // global `A`. We only touch it from here.
 declare global {
@@ -21,7 +23,7 @@ export async function initAladin(containerId: string, raDeg: number, decDeg: num
     console.warn("Aladin Lite failed to initialize (sky view will be unavailable):", err);
     const el = document.getElementById(containerId);
     if (el) {
-      el.textContent = "Sky view unavailable (external Aladin Lite service unreachable).";
+      el.textContent = t("aladin.unavailable");
       el.classList.add("aladin-unavailable");
     }
   }
@@ -107,6 +109,3 @@ export function drawProperMotionArrow(
   );
 }
 
-export function isAladinReady(): boolean {
-  return aladinInstance !== null;
-}

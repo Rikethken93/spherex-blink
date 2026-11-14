@@ -23,6 +23,7 @@
   "embed.copied": "Código para insertar copiado al portapapeles",
   "lowbw.toggle": "Modo de bajo consumo de datos",
   "lowbw.sky_view_skipped": "Vista del cielo omitida en modo de bajo consumo de datos.",
+  "aladin.unavailable": "Vista del cielo no disponible (el servicio externo Aladin Lite no responde).",
   "lang.toggle": "English",
   "panel.sky": "Vista del cielo",
   "panel.spectrum": "Espectro",

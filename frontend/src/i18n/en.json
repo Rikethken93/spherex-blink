@@ -23,6 +23,7 @@
   "embed.copied": "Embed code copied to clipboard",
   "lowbw.toggle": "Low bandwidth mode",
   "lowbw.sky_view_skipped": "Sky view skipped in low bandwidth mode.",
+  "aladin.unavailable": "Sky view unavailable (external Aladin Lite service unreachable).",
   "lang.toggle": "Español",
   "panel.sky": "Sky view",
   "panel.spectrum": "Spectrum",
