@@ -61,11 +61,3 @@ def write_bytes(directory: str, name: str, content: bytes) -> str:
     with open(path, "wb") as fh:
         fh.write(content)
     return path
-
-
-def read_bytes(directory: str, name: str) -> bytes | None:
-    path = os.path.join(directory, name)
-    if not os.path.exists(path):
-        return None
-    with open(path, "rb") as fh:
-        return fh.read()
