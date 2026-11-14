@@ -1,6 +1,6 @@
 {
-  "ra_deg": 269.4460738494614,
-  "dec_deg": 4.770710445984614,
+  "ra_deg": 269.4460738136779,
+  "dec_deg": 4.770710907009074,
   "fov_arcmin": 3.0,
   "mode": "blink",
   "detector": null,
@@ -18,7 +18,7 @@
       "mjd_max": 60949.265914294,
       "mjd_mean": 60915.67107775082,
       "n_exposures": 126,
-      "flag_fraction": 0.0740418310275623,
+      "flag_fraction": 0.07404183102756232,
       "detectors": [
         1,
         2,

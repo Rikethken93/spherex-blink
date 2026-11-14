@@ -1,5 +1,6 @@
 import "./style.css";
 import { ApiError, getFrames, getLightCurve, getSpectrum, getTargets, resolveName, frameUrl } from "./api";
+import { parseRaDeg, parseDecDeg } from "./coords";
 import type { TargetInfo } from "./api";
 import { applyTranslations, setLang, getLang, t } from "./i18n/i18n";
 import { readStateFromUrl, writeStateToUrl, embedSnippet } from "./state";
@@ -101,10 +102,16 @@ async function runSearch(query: string, fov: number, mode: string): Promise<void
   if (looksLikeCoords) {
     const parts = query.split(/[\s,]+/).filter(Boolean);
     if (parts.length >= 2) {
+      const ra = parseRaDeg(parts[0]);
+      const dec = parseDecDeg(parts[1]);
+      if (ra === null || dec === null) {
+        setStatus(t("error.bad_coords"));
+        return;
+      }
       state.ra = parts[0];
       state.dec = parts[1];
       writeStateToUrl(state);
-      await loadAndShow(Number(parts[0]) || 0, Number(parts[1]) || 0, fov, mode);
+      await loadAndShow(ra, dec, fov, mode);
       return;
     }
   }
@@ -232,8 +239,8 @@ async function init(): Promise<void> {
   wireTutorial();
   void loadGallery();
 
-  const initialRa = state.ra ? Number(state.ra) : NaN;
-  const initialDec = state.dec ? Number(state.dec) : NaN;
+  const initialRa = state.ra ? parseRaDeg(state.ra) : null;
+  const initialDec = state.dec ? parseDecDeg(state.dec) : null;
   // The sky view (initAladin) depends on an external CDN and must never
   // block the primary blink view -- run them independently, not sequentially.
   // Low bandwidth mode skips the sky view entirely: Aladin Lite pulls in
@@ -248,7 +255,7 @@ async function init(): Promise<void> {
     }
   };
 
-  if (!Number.isNaN(initialRa) && !Number.isNaN(initialDec)) {
+  if (initialRa !== null && initialDec !== null) {
     searchInput.value = `${initialRa} ${initialDec}`;
     maybeInitAladin(initialRa, initialDec);
     await loadAndShow(initialRa, initialDec, state.fov, state.mode);
