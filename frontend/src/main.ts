@@ -177,6 +177,10 @@ function wireLangAndBandwidthToggles(): void {
   el<HTMLButtonElement>("lang-toggle").addEventListener("click", () => {
     applyLang(getLang() === "es" ? "en" : "es");
     writeStateToUrl(state);
+    // The gallery's target names/notes/categories are baked into innerHTML
+    // at render time (not data-i18n attributes), so applyTranslations()
+    // alone won't re-localize it -- re-render explicitly.
+    renderGallery(el<HTMLDivElement>("gallery-host"), currentTargets, onGalleryPick);
   });
 
   const lowbwBtn = el<HTMLButtonElement>("lowbw-toggle");
@@ -207,17 +211,19 @@ function wireTutorial(): void {
   el<HTMLButtonElement>("tutorial-close").addEventListener("click", () => el<HTMLDialogElement>("tutorial-dialog").close());
 }
 
+function onGalleryPick(target: TargetInfo): void {
+  searchInput.value = target.display_name[getLang() === "es" ? "es" : "en"];
+  // Resolve by key (not the raw fallback ra/dec) so this hits the same
+  // Gaia-DR3-proper-motion-corrected position precache.py computed -- the
+  // static fallback coordinates alone would miss the pre-cached entry and
+  // fall back to a slow live query.
+  void runSearch(target.key, Number(fovInput.value), modeSelect.value);
+}
+
 async function loadGallery(): Promise<void> {
   try {
     currentTargets = await getTargets();
-    renderGallery(el<HTMLDivElement>("gallery-host"), currentTargets, (target) => {
-      searchInput.value = target.display_name[getLang() === "es" ? "es" : "en"];
-      // Resolve by key (not the raw fallback ra/dec) so this hits the same
-      // Gaia-DR3-proper-motion-corrected position precache.py computed --
-      // the static fallback coordinates alone would miss the pre-cached
-      // entry and fall back to a slow live query.
-      void runSearch(target.key, Number(fovInput.value), modeSelect.value);
-    });
+    renderGallery(el<HTMLDivElement>("gallery-host"), currentTargets, onGalleryPick);
   } catch {
     /* gallery is supplementary */
   }

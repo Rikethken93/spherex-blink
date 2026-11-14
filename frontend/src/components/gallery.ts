@@ -24,7 +24,7 @@ export function renderGallery(container: HTMLElement, targets: TargetInfo[], onP
       button.className = "gallery-card";
       button.innerHTML = `
         <strong>${target.display_name[lang]}</strong>
-        <span class="gallery-category">${target.category}</span>
+        <span class="gallery-category">${t(`category.${target.category}`)}</span>
         <p>${target.note[lang]}</p>
       `;
       button.addEventListener("click", () => onPick(target));
