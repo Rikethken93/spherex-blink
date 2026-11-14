@@ -185,7 +185,11 @@ async function loadGallery(): Promise<void> {
     currentTargets = await getTargets();
     renderGallery(el<HTMLDivElement>("gallery-host"), currentTargets, (target) => {
       searchInput.value = target.display_name[getLang() === "es" ? "es" : "en"];
-      void runSearch(`${target.ra_deg} ${target.dec_deg}`, Number(fovInput.value), modeSelect.value);
+      // Resolve by key (not the raw fallback ra/dec) so this hits the same
+      // Gaia-DR3-proper-motion-corrected position precache.py computed --
+      // the static fallback coordinates alone would miss the pre-cached
+      // entry and fall back to a slow live query.
+      void runSearch(target.key, Number(fovInput.value), modeSelect.value);
     });
   } catch {
     /* gallery is supplementary */

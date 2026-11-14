@@ -87,5 +87,39 @@ format: **Decision** — Alternatives considered — Reason.
   and full space-motion propagation agree to much better than one SPHEREx
   pixel (6.2"), so the simpler, always-available path was chosen.
 
+## Operational realities discovered while precaching real data
+
+- **IRSA cutout fetches run concurrently (thread pool, `HTTP_CONCURRENCY`
+  in config.py), not sequentially.** — Reason: a single 3' field can
+  overlap 250+ individual SPHEREx exposures (especially where DR1 "deep"
+  coverage exists), and a first live test fetching them one at a time did
+  not finish within a 10-minute timeout; switching to a 12-way thread pool
+  (these are plain I/O-bound HTTP downloads) brought the same query down
+  to about 3 minutes.
+
+- **A 4xx HTTP response (other than 429) from the cutout endpoint fails
+  immediately instead of exhausting the retry/backoff schedule.** —
+  Reason: live precaching hit a real, permanent `422 Arrays do not
+  overlap` from IRSA for specific exposures (the requested cutout box
+  apparently doesn't intersect that exposure's actual footprint closely
+  enough for the server's cutout code, despite it showing up in the SIA2
+  search results). Retrying an identical request 6 times with exponential
+  backoff cannot fix a deterministic rejection; it only wastes ~60
+  seconds per such exposure. Added a `NonRetryable` exception
+  (`net.py`) that `fetch_cutout` raises on any non-429 4xx, so these fail
+  in under a second and the exposure is simply dropped from that epoch's
+  stack (logged, not silently lost).
+
+- **`shared_normalization` must tolerate a frame that is entirely NaN.** —
+  Reason: Barnard's Star's real epoch grouping (confirmed live) splits
+  into several epochs across the ~13-month DR1+QR3 baseline, and at least
+  one of those epochs turned out sparse enough (few exposures, several
+  dropped to flags/NonRetryable errors) that every pixel of its stacked
+  frame was NaN. The original implementation called `np.concatenate` on a
+  list that could end up empty in exactly this case, crashing the whole
+  `/api/frames` request instead of rendering a mostly-blank (but valid)
+  frame. Fixed to fall back to a default [0, 1] normalization range when
+  no frame in a sequence has any finite pixel at all.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)
