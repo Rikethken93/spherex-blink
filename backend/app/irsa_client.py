@@ -13,6 +13,7 @@ from __future__ import annotations
 import io
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
 import numpy as np
@@ -161,10 +162,23 @@ def fetch_cutout(meta: ExposureMeta, ra_deg: float, dec_deg: float, fov_arcmin: 
 def fetch_exposures(
     metas: list[ExposureMeta], ra_deg: float, dec_deg: float, fov_arcmin: float
 ) -> list[Exposure]:
+    """Fetch every cutout concurrently -- a single field (especially a
+    SPHEREx "deep" survey position) can have hundreds of individual
+    exposures, and these are plain I/O-bound HTTP downloads, so a thread
+    pool turns a many-minutes sequential fetch into something usable live."""
     exposures: list[Exposure] = []
-    for meta in metas:
-        try:
-            exposures.append(fetch_cutout(meta, ra_deg, dec_deg, fov_arcmin))
-        except UpstreamUnavailable as exc:
-            logger.warning("Dropping exposure %s: %s", meta.obs_id, exc)
+    if not metas:
+        return exposures
+
+    with ThreadPoolExecutor(max_workers=config.HTTP_CONCURRENCY) as pool:
+        futures = {
+            pool.submit(fetch_cutout, meta, ra_deg, dec_deg, fov_arcmin): meta for meta in metas
+        }
+        for future in as_completed(futures):
+            meta = futures[future]
+            try:
+                exposures.append(future.result())
+            except UpstreamUnavailable as exc:
+                logger.warning("Dropping exposure %s: %s", meta.obs_id, exc)
+
     return exposures

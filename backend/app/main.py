@@ -5,7 +5,7 @@ import os
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from . import config, service
 from .coords import parse_dec_deg, parse_ra_deg
@@ -26,7 +26,20 @@ app.add_middleware(
 )
 
 os.makedirs(config.CACHE_DIR, exist_ok=True)
-app.mount("/cache", StaticFiles(directory=config.CACHE_DIR), name="cache")
+
+
+@app.get("/cache/{path:path}")
+def serve_cache_file(path: str):
+    # Reads config.CACHE_DIR per-request rather than a StaticFiles mount
+    # bound to the directory at import time, so changing
+    # SPHEREX_BLINK_CACHE_DIR (including via test monkeypatching) is
+    # actually honored.
+    full_path = os.path.normpath(os.path.join(config.CACHE_DIR, path))
+    if not full_path.startswith(os.path.normpath(config.CACHE_DIR)):
+        raise HTTPException(status_code=404, detail="Not found")
+    if not os.path.isfile(full_path):
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(full_path)
 
 
 @app.get("/api/health")
@@ -98,7 +111,9 @@ def frames(
     except UpstreamUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    base = f"/cache/frames/{result['cache_key_dir']}"
+    # cache_key_dir is already relative to CACHE_DIR, e.g. "frames/<hash>",
+    # and the StaticFiles mount below serves CACHE_DIR at /cache.
+    base = f"/cache/{result['cache_key_dir']}"
     result["frame_urls"] = [f"{base}/{name}" for name in result["frames"]]
     return result
 

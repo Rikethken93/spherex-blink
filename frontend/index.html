@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Blink SPHEREx all-sky infrared images to spot moving and variable objects." />
+    <title>SPHEREx Blink</title>
+    <script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content" data-i18n="skip">Skip to main content</a>
+
+    <header class="app-header">
+      <div class="app-header-left">
+        <h1 data-i18n="app.title">SPHEREx Blink</h1>
+        <p class="tagline" data-i18n="app.tagline">Spot moving and variable objects in NASA SPHEREx all-sky imagery</p>
+      </div>
+      <div class="app-header-right">
+        <button id="lowbw-toggle" type="button" class="toggle-btn" aria-pressed="false">
+          <span data-i18n="lowbw.toggle">Low bandwidth mode</span>
+        </button>
+        <button id="lang-toggle" type="button" class="toggle-btn">
+          <span data-i18n="lang.toggle">Español</span>
+        </button>
+      </div>
+    </header>
+
+    <form id="search-form" class="search-form" role="search">
+      <label for="search-input" class="visually-hidden" data-i18n="search.placeholder">Object name or RA/Dec</label>
+      <input id="search-input" name="q" type="text" data-i18n-placeholder="search.placeholder" placeholder="Object name or RA/Dec" autocomplete="off" />
+
+      <label for="fov-input" data-i18n="search.fov">Field of view (arcmin)</label>
+      <input id="fov-input" name="fov" type="number" min="1" max="15" step="0.5" value="3" />
+
+      <label for="mode-select" data-i18n="search.mode">Mode</label>
+      <select id="mode-select" name="mode">
+        <option value="blink" data-i18n="mode.blink">Blink</option>
+        <option value="difference" data-i18n="mode.difference">Difference</option>
+        <option value="sum" data-i18n="mode.sum">Deep stack</option>
+        <option value="rgb" data-i18n="mode.rgb">RGB composite</option>
+      </select>
+
+      <button type="submit" data-i18n="search.button">Search</button>
+      <button type="button" id="embed-button" data-i18n="embed.button">Embed</button>
+      <button type="button" id="tutorial-button" data-i18n="tutorial.button">How to spot a moving object</button>
+    </form>
+
+    <p id="status-message" role="status" aria-live="polite"></p>
+
+    <main id="main-content" class="layout">
+      <section class="panel panel-blink" aria-label="Blink animation">
+        <div id="blink-container" class="blink-container" tabindex="0"></div>
+        <div class="player-controls" role="group" aria-label="Playback controls">
+          <button id="player-prev" type="button" aria-label="Previous frame" data-i18n-aria-label="player.step_prev">⏮</button>
+          <button id="player-playpause" type="button" data-i18n="player.play">Play</button>
+          <button id="player-next" type="button" aria-label="Next frame" data-i18n-aria-label="player.step_next">⏭</button>
+          <label for="player-speed" data-i18n="player.speed">Speed</label>
+          <input id="player-speed" type="range" min="0.5" max="8" step="0.5" value="2" />
+          <label><input id="player-rock" type="checkbox" /> <span data-i18n="player.rock">Rock</span></label>
+          <label><input id="player-loop" type="checkbox" checked /> <span data-i18n="player.loop">Loop</span></label>
+          <label><input id="player-zoom" type="checkbox" /> <span data-i18n="player.zoom">Zoom</span></label>
+        </div>
+        <div id="metadata-host"></div>
+      </section>
+
+      <aside class="panel panel-side" aria-label="Sky view and charts">
+        <h2 data-i18n="panel.sky">Sky view</h2>
+        <div id="aladin-lite-div" class="aladin-container"></div>
+
+        <h2 data-i18n="panel.spectrum">Spectrum</h2>
+        <p class="hint" data-i18n="panel.spectrum.hint">Click the image to plot a spectrum at that position</p>
+        <canvas id="spectrum-canvas" width="400" height="220"></canvas>
+
+        <h2 data-i18n="panel.lightcurve">Light curve</h2>
+        <canvas id="lightcurve-canvas" width="400" height="220"></canvas>
+      </aside>
+    </main>
+
+    <section id="gallery-host" class="gallery-host" aria-label="Explore gallery"></section>
+
+    <footer class="app-footer">
+      <p data-i18n="credits.title">Data credits</p>
+      <p data-i18n="credits.body">SPHEREx data: NASA/IPAC IRSA.</p>
+    </footer>
+
+    <dialog id="tutorial-dialog" aria-labelledby="tutorial-title">
+      <div id="tutorial-content"></div>
+      <button id="tutorial-close" type="button">×</button>
+    </dialog>
+
+    <dialog id="embed-dialog">
+      <h2 data-i18n="embed.button">Embed</h2>
+      <textarea id="embed-code" readonly rows="3"></textarea>
+      <button id="embed-close" type="button">×</button>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

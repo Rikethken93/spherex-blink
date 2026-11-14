@@ -98,6 +98,9 @@ FOV_DEFAULT_ARCMIN = 3.0
 HTTP_MAX_RETRIES = 6
 HTTP_BACKOFF_BASE_SECONDS = 1.0
 HTTP_TIMEOUT_SECONDS = 60.0
+# A single field (especially a SPHEREx "deep" survey position) can have
+# hundreds of exposures; fetched concurrently rather than one at a time.
+HTTP_CONCURRENCY = 12
 
 # --- Cache -------------------------------------------------------------------
 import os

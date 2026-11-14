@@ -108,6 +108,14 @@ def test_frames_blink_mode_returns_one_frame_per_epoch(mock_coverage):
     assert len(body["frames"]) == 3  # 3 synthetic epochs, 200 days apart
     assert len(body["epochs"]) == 3
     assert all(url.startswith("/cache/frames/") for url in body["frame_urls"])
+    # Regression check: cache_key_dir is already relative to CACHE_DIR
+    # ("frames/<hash>"), so the URL must not double up to
+    # "/cache/frames/frames/<hash>/...".
+    assert all("frames/frames" not in url for url in body["frame_urls"])
+    # The URL must actually resolve through the static mount, not just look right.
+    frame_resp = client.get(body["frame_urls"][0])
+    assert frame_resp.status_code == 200
+    assert frame_resp.headers["content-type"] == "image/png"
 
 
 def test_frames_sum_mode_returns_single_frame(mock_coverage):
