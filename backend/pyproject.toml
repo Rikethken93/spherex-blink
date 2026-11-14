@@ -1,0 +1,9 @@
+[project]
+name = "spherex-blink-backend"
+version = "0.1.0"
+description = "Blink NASA SPHEREx all-sky infrared epochs to spot moving and variable objects. AI-assisted: built with Claude Code under the team's direction."
+requires-python = ">=3.12"
+keywords = ["spherex", "nasa", "astronomy", "blink-comparator", "ai-assisted"]
+
+# Dependencies are managed via requirements.txt (see README.md); this file
+# exists for project metadata, not as the install mechanism.

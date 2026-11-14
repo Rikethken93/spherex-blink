@@ -9,6 +9,10 @@ Every value below was confirmed against the live IRSA archive on 2026-11-14
   position returned a 7-HDU FITS (PRIMARY, IMAGE, FLAGS, VARIANCE, ZODI,
   EPSF, WCS-WAVE), confirming ``CUTOUT_URL_TEMPLATE`` and
   ``FITS_EXTENSIONS`` below.
+
+AI-assisted: written with Claude Code (Anthropic) under the team's
+direction; concept, requirements, and design decisions are the team's
+own. See DECISIONS.md and README.md ("AI assistance") for details.
 """
 from __future__ import annotations
 

@@ -8,14 +8,11 @@ new epoch whenever the gap since the previous exposure exceeds `gap_days`.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TypeVar
 
 from .. import config
 
-T = TypeVar("T")
 
-
-def group_into_epochs(
+def group_into_epochs[T](
     items: Sequence[T],
     get_mjd,
     gap_days: float = config.EPOCH_GAP_DAYS,
@@ -32,7 +29,7 @@ def group_into_epochs(
     return epochs
 
 
-def epoch_summary(epoch: Sequence[T], get_mjd) -> dict:
+def epoch_summary[T](epoch: Sequence[T], get_mjd) -> dict:
     mjds = [get_mjd(item) for item in epoch]
     return {
         "mjd_min": min(mjds),

@@ -71,9 +71,11 @@ what's being seen.
 
 ## LATAM / citizen-science angle
 
-- **Language**: the UI is fully bilingual (Spanish/English), defaulting to
-  Spanish for `es-*` browsers — not just translated strings, but the
-  default experience for Spanish-speaking users.
+- **Language**: the UI is fully bilingual (English/Spanish). It defaults
+  to English (so judges always land on English regardless of browser
+  locale), with Spanish one click away via the language toggle or a
+  `?lang=es` link — a full translation, not just a few strings, built for
+  Spanish-speaking users in the region this tool is partly aimed at.
 - **Low bandwidth**: a dedicated low-bandwidth mode (smaller frames, lazy
   loading) targets 3G-class connections, since reliable high-speed
   broadband isn't universal across Latin America.
@@ -104,12 +106,39 @@ what's being seen.
 5. (0:27-0:30) Toggle to Spanish; show the embed button. "Bilingual,
    embeddable, and it runs on a 3G connection in low-bandwidth mode."
 
-## NASA data used
+## NASA Data
 
-- SPHEREx Level-2 spectral images (NASA/IPAC IRSA, collections
-  `spherex_dr1`, `spherex_dr1_deep`, `spherex_qr3`, `spherex_qr3_deep`).
-- Gaia DR3 (ESA, via NASA/IPAC IRSA's Gaia TAP access) for proper motions
-  and the sky-view catalog overlay.
-- AllWISE (NASA/IPAC) for the sky-view catalog overlay and, for several
-  brown-dwarf targets, discovery-paper astrometry used as a literature
-  proper-motion fallback where no Gaia DR3 solution exists.
+- **SPHEREx** Level-2 spectral images (NASA/IPAC Infrared Science Archive,
+  collections `spherex_dr1`, `spherex_dr1_deep`, `spherex_qr3`,
+  `spherex_qr3_deep`). SPHEREx is a NASA Astrophysics Small Explorer
+  mission (JPL/Caltech).
+- **WISE / AllWISE** (NASA/IPAC): the sky-view catalog overlay, and, for
+  several brown-dwarf targets, the discovery-paper astrometry used as a
+  literature proper-motion fallback where no Gaia DR3 solution exists
+  (WISE 0855-0714, Luhman 16 AB, UGPS 0722-05 were all WISE/UKIDSS
+  discoveries).
+
+## Space Agency Partner Data and Other References
+
+- **Gaia DR3** (ESA/Gaia/DPAC), accessed via NASA/IPAC IRSA's Gaia TAP
+  service — proper motions and the sky-view catalog overlay.
+- **Aladin Lite** (CDS, Centre de Données astronomiques de Strasbourg /
+  Observatoire astronomique de Strasbourg) — the sky-view panel.
+- **astropy, astroquery, reproject** (open-source scientific Python
+  community) — WCS handling, archive queries, and image reprojection.
+- Literature proper motions for targets without a Gaia DR3 solution:
+  Luhman & Esplin (2014) for WISE 0855-0714; Bedin et al. (2017/2018) for
+  Luhman 16 AB; Lucas et al. (2010) for UGPS 0722-05; McCaughrean et al.
+  (2004) for Epsilon Indi Ba/Bb (see `backend/app/targets.py` for the
+  full citation on each).
+
+## AI assistance
+
+This project's code was written with [Claude Code](https://claude.com/claude-code)
+(Anthropic) under the team's direction. The team specified every data
+source, pipeline design choice, and UI/UX requirement, and verified each
+one against the real IRSA/Gaia archives during development (the full
+reasoning behind each decision — including several real bugs found and
+fixed along the way — is logged in `DECISIONS.md`). The concept (a
+SPHEREx blink comparator), the target selection, the LATAM/accessibility
+framing, and the overall design are the team's own.

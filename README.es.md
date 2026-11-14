@@ -203,6 +203,18 @@ la nueva versión). Luego vuelve a ejecutar `scripts/precache.py`.
 - **Vista del cielo**: Aladin Lite (CDS, Observatoire astronomique de
   Strasbourg).
 
+## Asistencia de IA
+
+El código de este proyecto fue escrito con [Claude Code](https://claude.com/claude-code)
+(Anthropic) bajo la dirección del equipo — cada decisión de acceso a
+datos, diseño del pipeline y de interfaz/experiencia de usuario fue
+especificada, revisada y verificada por el equipo contra los archivos
+reales de IRSA/Gaia (ver `DECISIONS.md` para el razonamiento detrás de
+cada una). El concepto (un comparador de parpadeo para SPHEREx), la lista
+de objetivos, el enfoque LATAM/accesibilidad y todas las decisiones de
+diseño son propias del equipo. Ver `DECISIONS.md` para el registro
+completo de qué se decidió y por qué.
+
 ## Limitaciones
 
 - Las consultas en vivo (sin caché) sobre campos muy poblados o de

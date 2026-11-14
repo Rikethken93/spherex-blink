@@ -190,6 +190,17 @@ old cache entries don't silently mix with the new release). Then re-run
 - **Sky view**: Aladin Lite (CDS, Observatoire astronomique de
   Strasbourg).
 
+## AI assistance
+
+This project's code was written with [Claude Code](https://claude.com/claude-code)
+(Anthropic) under the team's direction — every data-access decision,
+pipeline design choice, and UI/UX call was specified, reviewed, and
+verified by the team against the real IRSA/Gaia archives (see
+`DECISIONS.md` for the specific reasoning behind each one). The concept
+(a SPHEREx blink comparator), the target list, the LATAM/accessibility
+framing, and all design decisions are the team's own. See `DECISIONS.md`
+for a full log of what was decided and why.
+
 ## Limitations
 
 - Live (non-cached) queries against crowded or "deep"-survey fields can

@@ -12,14 +12,12 @@ const DEFAULTS: AppState = {
   dec: "",
   fov: 3,
   mode: "blink",
-  lang: detectLang(),
+  // English-first by default (judges should never land on Spanish by
+  // accident because of their browser's locale setting) -- Spanish is a
+  // one-click toggle or an explicit ?lang=es away, not auto-detected.
+  lang: "en",
   lowBandwidth: false,
 };
-
-function detectLang(): string {
-  const nav = navigator.language ?? "en";
-  return nav.toLowerCase().startsWith("es") ? "es" : "en";
-}
 
 export function readStateFromUrl(): AppState {
   const params = new URLSearchParams(window.location.search);

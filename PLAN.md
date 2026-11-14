@@ -42,6 +42,22 @@ proper motion or variability directly.
     Mermaid diagram, run/deploy/upgrade instructions, credits, limitations),
     docs/SUBMISSION.md, DECISIONS.md finalized, LICENSE (MIT).
 
+## Submission-polish requirements (added mid-build, before final wrap-up)
+12. English-first submission material: README.md, docs/SUBMISSION.md, and
+    UI default text are English for judges; README.es.md and the Spanish
+    UI locale remain as extras (not removed).
+13. AI assistance disclosure: a section in README.md and SUBMISSION.md
+    stating code was written with Claude Code under the team's direction,
+    concept/design decisions from the team; a matching comment header in
+    main source files; "ai-assisted" in package metadata.
+14. Audit the whole repo for NASA logos/flags/mission insignia -- text
+    credits only, nowhere else.
+15. SUBMISSION.md data credits split into "NASA Data" vs "Space Agency
+    Partner Data and Other References".
+16. docs/DEMO_SCRIPT.md: 30-second video script with specific timestamps,
+    English subtitle lines, plus a 7-slide alternative outline.
+17. Cloud Run deploy notes alongside the existing Render/Fly.io notes.
+
 ## Working rules
 - Never invent SPHEREx data. Any synthetic data is confined to unit tests and
   explicitly labeled as synthetic there.

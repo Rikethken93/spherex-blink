@@ -10,13 +10,10 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable
-from typing import TypeVar
 
 from . import config
 
 logger = logging.getLogger("spherex_blink.net")
-
-T = TypeVar("T")
 
 
 class UpstreamUnavailable(RuntimeError):
@@ -31,7 +28,7 @@ class NonRetryable(RuntimeError):
     this, each one costs ~60s of pure waste across 6 doomed retries."""
 
 
-def with_backoff(
+def with_backoff[T](
     fn: Callable[[], T],
     *,
     max_retries: int = config.HTTP_MAX_RETRIES,

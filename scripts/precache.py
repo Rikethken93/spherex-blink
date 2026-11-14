@@ -5,6 +5,10 @@ run its full demo offline.
 
 Usage (from repo root, with the backend venv active):
     python scripts/precache.py [--targets key1,key2,...] [--modes blink,sum,...]
+
+AI-assisted: written with Claude Code (Anthropic) under the team's
+direction; concept, requirements, and design decisions are the team's
+own. See DECISIONS.md and README.md ("AI assistance") for details.
 """
 from __future__ import annotations
 

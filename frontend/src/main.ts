@@ -1,3 +1,6 @@
+// AI-assisted: written with Claude Code (Anthropic) under the team's
+// direction; concept, requirements, and design decisions are the team's
+// own. See DECISIONS.md and README.md ("AI assistance") for details.
 import "./style.css";
 import { ApiError, getFrames, getLightCurve, getSpectrum, getTargets, resolveName, frameUrl } from "./api";
 import { parseRaDeg, parseDecDeg } from "./coords";
