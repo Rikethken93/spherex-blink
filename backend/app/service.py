@@ -70,13 +70,21 @@ def _fetch_and_stack(
     detector: int | None = None,
     wl_min: float | None = None,
     wl_max: float | None = None,
+    epoch_gap_days: float | None = None,
 ):
     """Query + fetch + epoch-group + reproject-stack once. Shared by
     get_frames/get_spectrum/get_lightcurve (each still caches its own
     final product independently, for the live API) and by
     scripts/precache.py (which calls this directly to fetch a target's
     exposures exactly once and derive all three cached products from it,
-    rather than paying for three independent full fetches per target)."""
+    rather than paying for three independent full fetches per target).
+
+    epoch_gap_days overrides config.EPOCH_GAP_DAYS for this call only --
+    not exposed on the public API, only used by precache.py for targets
+    near the ecliptic pole (e.g. R Draconis) where SPHEREx's scan geometry
+    revisits so densely that the default 60-day gap never finds a split
+    across a 500+ day, 2500+ exposure baseline, merging it into one
+    "epoch" -- i.e. a one-frame, non-blinking "blink"."""
     metas = query_exposure_metadata(ra_deg, dec_deg, fov_arcmin)
     metas = _filter_metadata(metas, detector, wl_min, wl_max)
     if not metas:
@@ -93,7 +101,8 @@ def _fetch_and_stack(
             "retrieved from IRSA right now. Please try again shortly."
         )
 
-    epochs = group_into_epochs(exposures, lambda e: e.mjd)
+    gap = epoch_gap_days if epoch_gap_days is not None else config.EPOCH_GAP_DAYS
+    epochs = group_into_epochs(exposures, lambda e: e.mjd, gap_days=gap)
     stacked_epochs = [stack_epoch(epoch, ra_deg, dec_deg, fov_arcmin) for epoch in epochs]
     return exposures, epochs, stacked_epochs
 
@@ -229,7 +238,9 @@ def get_lightcurve(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV
     return points
 
 
-def precache_all(ra_deg: float, dec_deg: float, fov_arcmin: float, modes: list[str]) -> dict:
+def precache_all(
+    ra_deg: float, dec_deg: float, fov_arcmin: float, modes: list[str], epoch_gap_days: float | None = None
+) -> dict:
     """Used only by scripts/precache.py: fetch a target's exposures exactly
     once and populate the frames (every requested mode), spectrum, and
     light-curve caches from that single fetch -- each of get_frames,
@@ -237,7 +248,7 @@ def precache_all(ra_deg: float, dec_deg: float, fov_arcmin: float, modes: list[s
     cache (correct for an arbitrary live query), which would cost three
     full IRSA fetches per target here for no benefit, since all three are
     about to be cached for the exact same position anyway."""
-    exposures, epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
+    exposures, epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin, epoch_gap_days=epoch_gap_days)
     epoch_meta = _epoch_metadata(epochs, stacked_epochs)
 
     results: dict[str, object] = {"n_exposures_total": len(exposures), "n_epochs": len(epochs)}

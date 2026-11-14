@@ -33,7 +33,7 @@ DEFAULT_MODES = ["blink", "sum", "difference"]
 DEFAULT_FOV_ARCMIN = 3.0
 
 
-def precache_target(key: str, modes: list[str]) -> bool:
+def precache_target(key: str, modes: list[str], epoch_gap_days: float | None = None) -> bool:
     target = TARGETS_BY_KEY[key]
     logger.info("=== %s (%s) ===", key, target.display_name["en"])
 
@@ -55,7 +55,9 @@ def precache_target(key: str, modes: list[str]) -> bool:
     try:
         # One fetch, shared across every mode plus spectrum and light curve
         # -- avoids paying for a separate full IRSA fetch per product.
-        result = service.precache_all(resolved.ra_deg, resolved.dec_deg, DEFAULT_FOV_ARCMIN, modes)
+        result = service.precache_all(
+            resolved.ra_deg, resolved.dec_deg, DEFAULT_FOV_ARCMIN, modes, epoch_gap_days=epoch_gap_days
+        )
         logger.info(
             "  exposures=%d epochs=%d spectrum=%d points lightcurve=%d points",
             result["n_exposures_total"], result["n_epochs"],
@@ -80,6 +82,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--targets", default=None, help="Comma-separated target keys (default: all)")
     parser.add_argument("--modes", default=",".join(DEFAULT_MODES), help="Comma-separated frame modes")
+    parser.add_argument(
+        "--epoch-gap-days", type=float, default=None,
+        help="Override config.EPOCH_GAP_DAYS for this run (e.g. for a near-ecliptic-pole "
+        "target like R Draconis, where dense SPHEREx revisits mean the default 60-day gap "
+        "never splits the baseline into more than one epoch)",
+    )
     args = parser.parse_args()
 
     keys = args.targets.split(",") if args.targets else [t.key for t in ALL_TARGETS]
@@ -88,8 +96,10 @@ def main() -> int:
     logger.info("Cache dir: %s", config.CACHE_DIR)
     logger.info("Targets: %s", keys)
     logger.info("Modes: %s", modes)
+    if args.epoch_gap_days is not None:
+        logger.info("Epoch gap override: %s days", args.epoch_gap_days)
 
-    results = {key: precache_target(key, modes) for key in keys}
+    results = {key: precache_target(key, modes, epoch_gap_days=args.epoch_gap_days) for key in keys}
 
     print("\n=== Precache summary ===")
     for key, ok in results.items():

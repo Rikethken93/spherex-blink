@@ -280,5 +280,21 @@ format: **Decision** — Alternatives considered — Reason.
   document and gives the team a third concrete, judge-checkable option
   without committing to any one platform.
 
+- **`precache.py` gained a `--epoch-gap-days` override (threaded through
+  `service.precache_all`/`_fetch_and_stack`, not exposed on the public
+  API).** — Reason: R Draconis, at Dec +66.75° (close to the north
+  ecliptic pole), turned out to have 2,529 exposures across the DR1+QR3
+  baseline -- far more than any other target -- because SPHEREx's scan
+  geometry revisits near the poles much more densely than near the
+  ecliptic. Under the default 60-day epoch gap, that dense, near-
+  continuous coverage never produces a single gap over 60 days across
+  the whole ~520-day span, so it all collapsed into *one* epoch -- a
+  "blink" with exactly one frame, which can't blink. Re-ran just this
+  target with a 14-day gap to recover a real multi-epoch sequence,
+  instead of changing the global default (which would risk re-splitting
+  the other four already-good, already-cached targets' clean 3-4 epoch
+  groupings for no reason, and would require re-fetching all of them
+  again to verify).
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)
