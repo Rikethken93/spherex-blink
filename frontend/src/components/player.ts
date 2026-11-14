@@ -1,5 +1,3 @@
-import { t } from "../i18n/i18n";
-
 export interface PlayerCallbacks {
   onFrameChange?: (index: number) => void;
   /** Fired on click with the click position as a fraction of the image
@@ -129,16 +127,4 @@ export class BlinkPlayer {
     this.img.src = this.frames[this.index];
     this.callbacks.onFrameChange?.(this.index);
   }
-
-  currentIndex(): number {
-    return this.index;
-  }
-
-  frameCount(): number {
-    return this.frames.length;
-  }
-}
-
-export function labelFor(key: string): string {
-  return t(key);
 }
