@@ -48,6 +48,8 @@
   "tutorial.p2": "A moving object (like a nearby star with high proper motion) will visibly jump between frames — the same trick Clyde Tombaugh used to discover Pluto in 1930, and that NASA's Backyard Worlds citizen-science project still uses today with WISE images.",
   "tutorial.p3": "A variable object (like RW Aurigae or R Draconis) stays in the same place but changes brightness between frames.",
   "tutorial.p4": "Watch out for artifacts: single bright or dark pixels that appear in only one frame are usually cosmic-ray hits or bad pixels, not real sources. The flagged-pixel fraction in the metadata table tells you how much of each frame was masked out.",
+  "status.loading": "Loading…",
+  "status.loading_slow": "Still working — this position isn't cached yet, so we're fetching live data from the NASA archive. This can take up to a couple of minutes.",
   "error.bad_coords": "Could not parse those coordinates. Try decimal degrees (e.g. 269.45 4.69) or sexagesimal (e.g. 08h55m10.8s -07d14m42.5s).",
   "error.no_coverage": "No SPHEREx coverage yet for this position or filter. Try a wider field of view or a different wavelength range.",
   "error.generic": "Something went wrong talking to the SPHEREx Blink API.",

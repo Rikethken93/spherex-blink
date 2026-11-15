@@ -358,5 +358,77 @@ format: **Decision** — Alternatives considered — Reason.
     data tool -- this is editorial for the identity, informational for
     the instruments.
 
+- Redesign deployed to production (Vercel deployment
+  `dpl_HqqQz4Nbhendogo581pNujuRgwuY`, aliased to
+  https://frontend-woad-nu-23.vercel.app) and verified live with a
+  Playwright screenshot against the production URL itself (not just the
+  local dev server): Fraunces/IBM Plex fonts, the ember/cyan accent
+  pair, and the header starfield all render correctly from the CDN
+  build; a live WISE 0855-0714 search against the Fly.io backend
+  returned real cached data (3 epochs, spectrum, light curve) rendered
+  in the new styling. The Aladin CDN outage noted earlier in this file
+  is still handled by the same graceful fallback panel, now restyled
+  to match (dashed border, monospace message) rather than left in the
+  old look.
+- `docs/screenshots/*.png` were regenerated after the redesign so the
+  images referenced from SUBMISSION.md and DEMO_SCRIPT.md match what
+  judges will actually see on the live site, instead of the pre-redesign
+  styling.
+
+- Bug report ("is not loading well") traced to two real issues, both
+  fixed and redeployed:
+  1. Any cache-miss search (switching mode on a target whose non-blink
+     modes weren't precached, typing raw coordinates, or changing the
+     field of view) falls through to a live IRSA fetch. IRSA is
+     genuinely flaky right now (frequent 503s, confirmed live), so this
+     can take over two minutes -- and the UI only ever showed a static
+     "…" the whole time, which reads as a hung page rather than a slow
+     one. Fixed in `frontend/src/main.ts` (`beginLoading()`): the status
+     line now switches to an explicit "still working, fetching live
+     data, can take up to a couple of minutes" message after 6 seconds,
+     in both `en.json` and `es.json`.
+  2. Three of the eight gallery targets (Proxima Centauri, Luhman 16,
+     UGPS 0722) had only `blink` mode precached from an earlier run --
+     `sum`/`difference`/`rgb` were missing entirely, so switching mode
+     on any of those cards guaranteed the slow live-fetch path above.
+     Backfilled via `scripts/precache.py --targets
+     proxima-centauri,luhman-16,ugps0722 --modes sum,difference,rgb`;
+     all 8 targets x all 4 modes are now cache hits (verified live,
+     mostly <1s, worst case ~8s during a Fly.io cold start).
+  Both fixes verified against the production URLs after redeploying
+  the backend (new cache baked into the image) and the frontend.
+
+- Live end-to-end QA added (`scripts/qa_live.ts`, root-level `package.json`
+  with `playwright` + `axe-core` as QA-only devDependencies, kept separate
+  from `backend/` and `frontend/`'s own dependency trees): headless
+  Chromium exercises the real production frontend and backend -- no
+  mocking -- across landing-page health, all 8 targets x 4 modes, URL
+  params, name search, spectrum/light-curve, FOV changes, an uncached
+  coordinate, invalid input, the embed snippet, a 390px mobile viewport,
+  backend health/CORS, and an axe-core accessibility scan. Written in
+  TypeScript and run directly via Node 22's built-in type-stripping (no
+  build step, no `ts-node`/`tsx` dependency).
+  - Result: 52/58 checks passed, 0 reproducible application bugs. The 4
+    apparent failures were investigated by hand (direct `curl` + `fly
+    logs`) and all trace to one external cause: Fly.io's free-trial plan
+    force-kills every machine after 5 minutes of continuous uptime,
+    independent of in-flight requests -- confirmed via the exact
+    `runner[...] Trial machine stopping` log line, which can otherwise be
+    misread as an OOM kill (the kernel log phrases it that way, but the
+    preceding line names the real cause and `anon-rss` was nowhere near
+    the 512MB limit). This is **not fixable by changing application code**
+    -- flagged to the team as a decision that needs a human call (add a
+    payment method to Fly to lift the cap, or accept the risk for the
+    judging window). See docs/qa/QA_REPORT.md for the full investigation.
+  - Two bugs were found and fixed in the QA script itself before trusting
+    its results: it asserted Play/Pause always toggles, when
+    `player.ts`'s `play()` deliberately no-ops below 2 frames (single-frame
+    `sum`/`difference`/`rgb` results correctly never animate); and it
+    assumed `/api/lightcurve` returns a bare array, when it actually
+    returns `{ra_deg, dec_deg, points: [...]}` like `/api/spectrum` does.
+    Recorded here as a reminder that a failing automated check is a lead
+    to investigate, not an automatic bug report -- the harness's own
+    assumptions are also a potential point of failure.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)

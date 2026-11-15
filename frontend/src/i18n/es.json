@@ -48,6 +48,8 @@
   "tutorial.p2": "Un objeto en movimiento (como una estrella cercana con alto movimiento propio) salta visiblemente entre cuadros — el mismo truco que usó Clyde Tombaugh para descubrir Plutón en 1930, y que el proyecto de ciencia ciudadana Backyard Worlds de la NASA sigue usando hoy con imágenes de WISE.",
   "tutorial.p3": "Un objeto variable (como RW Aurigae o R Draconis) permanece en el mismo lugar pero cambia de brillo entre cuadros.",
   "tutorial.p4": "Cuidado con los artefactos: píxeles brillantes u oscuros aislados que aparecen en un solo cuadro suelen ser impactos de rayos cósmicos o píxeles defectuosos, no fuentes reales. La fracción de píxeles marcados en la tabla de metadatos indica cuánto de cada cuadro quedó enmascarado.",
+  "status.loading": "Cargando…",
+  "status.loading_slow": "Seguimos trabajando — esta posición aún no está en caché, así que estamos buscando datos en vivo en el archivo de la NASA. Esto puede tardar hasta un par de minutos.",
   "error.bad_coords": "No se pudieron interpretar esas coordenadas. Prueba con grados decimales (ej. 269.45 4.69) o sexagesimales (ej. 08h55m10.8s -07d14m42.5s).",
   "error.no_coverage": "Todavía no hay cobertura de SPHEREx para esta posición o filtro. Prueba un campo de visión más amplio o un rango de longitud de onda distinto.",
   "error.generic": "Ocurrió un error al comunicarse con la API de SPHEREx Blink.",

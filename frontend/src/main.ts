@@ -66,6 +66,19 @@ function setStatus(message: string): void {
   statusEl.textContent = message;
 }
 
+let loadingTimer: ReturnType<typeof setTimeout> | undefined;
+
+// Cache misses trigger a live fetch from IRSA, which can take over a
+// minute (the archive is occasionally slow/flaky -- see net.py). A bare
+// "…" that never changes reads as a hung page, so switch to a message
+// that explains the wait once it's gone on for a few seconds.
+function beginLoading(): () => void {
+  setStatus(t("status.loading"));
+  clearTimeout(loadingTimer);
+  loadingTimer = setTimeout(() => setStatus(t("status.loading_slow")), 6000);
+  return () => clearTimeout(loadingTimer);
+}
+
 function applyLang(lang: string): void {
   setLang(lang);
   state.lang = lang;
@@ -75,9 +88,10 @@ function applyLang(lang: string): void {
 }
 
 async function loadAndShow(raDeg: number, decDeg: number, fovArcmin: number, mode: string): Promise<void> {
-  setStatus("…");
+  const stopLoading = beginLoading();
   try {
     const result = await getFrames(raDeg, decDeg, fovArcmin, mode);
+    stopLoading();
     player.setFrames(result.frame_urls.map(frameUrl));
     renderMetadataTable(metadataHost, result.epochs);
     setStatus(
@@ -98,6 +112,7 @@ async function loadAndShow(raDeg: number, decDeg: number, fovArcmin: number, mod
       /* same as above */
     }
   } catch (err) {
+    stopLoading();
     if (err instanceof ApiError && err.status === 404) {
       setStatus(t("error.no_coverage"));
     } else if (err instanceof ApiError && err.status === 503) {
@@ -130,9 +145,10 @@ async function runSearch(query: string, fov: number, mode: string): Promise<void
     }
   }
 
-  setStatus("…");
+  const stopLoading = beginLoading();
   try {
     const resolved = await resolveName(query);
+    stopLoading();
     state.ra = String(resolved.ra_deg);
     state.dec = String(resolved.dec_deg);
     writeStateToUrl(state);
@@ -142,6 +158,7 @@ async function runSearch(query: string, fov: number, mode: string): Promise<void
       drawProperMotionArrow(resolved.ra_deg, resolved.dec_deg, resolved.pmra_mas_yr, resolved.pmdec_mas_yr);
     }
   } catch {
+    stopLoading();
     setStatus(t("error.generic"));
   }
 }

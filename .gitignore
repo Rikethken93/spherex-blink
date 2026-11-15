@@ -11,6 +11,9 @@ node_modules/
 frontend/dist/
 frontend/.vite/
 
+# Claude Code local tool state
+.claude/
+
 # OS
 .DS_Store
 

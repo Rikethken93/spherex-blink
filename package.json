@@ -1,0 +1,10 @@
+{
+  "name": "spherex-blink-qa",
+  "private": true,
+  "type": "module",
+  "description": "Root-level QA tooling only (scripts/qa_live.ts). The actual app lives in backend/ and frontend/.",
+  "devDependencies": {
+    "axe-core": "^4.14.0",
+    "playwright": "^1.65.1"
+  }
+}
