@@ -229,3 +229,64 @@ with matching frame/epoch counts, mobile layout clean, CORS correct, and
 the progressive loading-message / friendly-error UX confirmed working
 end-to-end on genuinely slow and genuinely invalid inputs alike. Clear to
 rely on for live judging.
+
+---
+
+# Addendum — final-day fixes verification (2026-11-15, ~21:50 UTC)
+
+Four production problems were root-caused and fixed this session (full
+diagnosis with before/after images: `BLUR_DIAGNOSIS.md`; decisions:
+DECISIONS.md "Final-day fixes"):
+
+1. **Proper motion not applied** for Proxima Centauri / Barnard's Star
+   (Gaia TAP outage -> silent J2000 fallback; 98"/269" off target).
+   Gaia DR3 astrometry is now cached locally, propagated to the survey
+   mid-epoch, and both targets were re-precached live from IRSA at the
+   corrected positions (3' + 6', all four modes + spectrum/light curve).
+2. **ZScale stretch** turning crowded-field noise into fake stars ->
+   asinh with a 1-99.5 percentile clip shared across each sequence,
+   plus a client-side Contrast slider.
+3. **Saturated cores rendered pure black** -> white with a thin red
+   outline (masked pixels dark grey), "Saturated core" note in the
+   epoch metadata table.
+4. **Sky view empty** (Aladin CDN outage) -> Aladin Lite bundled from
+   npm (code-split chunk, no runtime script CDN), with a static CDS
+   hips2fits fallback image + target marker if init fails.
+
+Also: FOV state sync (URL/input/scale bar follow the *served* FOV, with
+an explicit fallback note), a dim optional "J2000" marker, nearest-pixel
+spectrum fallback at saturated cores (Proxima spectrum: 0 -> 185
+points), and 20" snap-to-precache so demo targets never fall through to
+a live fetch over a sub-arcsecond resolve difference.
+
+## Production verification (fresh deploy of backend + frontend)
+
+Playwright against https://frontend-woad-nu-23.vercel.app with the
+live Fly.io backend; screenshots in `screenshots/qa2-*.png`. Automated
+checks per target x FOV: frames load from cache, displayed/natural
+scale is an exact integer, central region contains no pure-black
+saturated blob, saturated-core outline present where expected, sky
+view panel non-empty.
+
+| Target | FOV | Result |
+|---|---|---|
+| Proxima Centauri | 3' | PASS — cached (383 exp -> 3 epochs), scale 1.000, 0% central black, white core + red outline, sky=aladin |
+| Proxima Centauri | 6' | PASS — cached (391 exp -> 3 epochs), scale 1.000, 0% central black, white core + red outline, sky=aladin |
+| Barnard's Star | 3' | PASS — cached (373 exp -> 3 epochs), scale 1.000, 0% central black, white core + red outline, sky=aladin |
+| Barnard's Star | 6' | PASS — cached (383 exp -> 3 epochs), scale 1.000, 0% central black, white core + red outline, sky=aladin |
+| WISE 0855-0714 | 3' | PASS — cached (258 exp -> 3 epochs), scale 1.000, no saturated core (faint target, correct), sky=aladin |
+| WISE 0855-0714 | 6' | PASS — cached (262 exp -> 3 epochs), scale 1.000, sky=aladin |
+| RW Aurigae | 3' | PASS — cached (339 exp -> 3 epochs), scale 1.000, 0% central black, sky=aladin |
+| RW Aurigae | 6' | PASS — cached (342 exp -> 3 epochs), scale 1.000, 0% central black, sky=aladin |
+
+Visual check of the screenshots: the star sits under the crosshair in
+every Proxima/Barnard frame (both were off-frame or off-centre before),
+pixels are crisp squares, and the saturated cores read as white discs
+with a red outline instead of black holes.
+
+**Known remainder:** R Draconis's cache entry still carries the previous
+(ZScale) rendering style -- its 2,500+ exposure re-render was still
+fetching from a 503-flapping IRSA at verification time. Its position was
+always correct (negligible proper motion); only the stretch/saturation
+styling is stale until the re-render lands. Every other target x FOV x
+mode in the gallery serves the new rendering.
