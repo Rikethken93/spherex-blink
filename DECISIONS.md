@@ -749,3 +749,14 @@ decisions, appended as each milestone lands.)
   switch Mode to Blink to animate", EN/ES) instead of doing nothing.
   Blink playback itself verified advancing live (frame_0->1->2 loop at
   the default 2 fps) right after deploying.
+
+- "The first version looked better" (user, 2026-11-15 evening): the
+  soft, photographic look of the pre-fix build was the browser's smooth
+  upscaling -- aesthetically pleasing, scientifically dishonest about
+  where the data's resolution ends. Rather than re-defaulting to it
+  (the task spec explicitly requires Smooth default OFF), the Smooth
+  checkbox + Contrast slider now persist in the URL and the share/embed
+  links (&smooth=1&contrast=1.4), so the team can hand judges a demo
+  link that opens with the soft look while the app's own default stays
+  honest-pixels. Verified live: the parameterized URL opens with
+  image-rendering:auto, contrast(1.4), both controls reflecting it.

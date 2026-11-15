@@ -247,15 +247,19 @@ function wirePlayerControls(): void {
     blinkContainer.classList.toggle("zoomed", (e.target as HTMLInputElement).checked);
   });
   el<HTMLInputElement>("player-smooth").addEventListener("change", (e) => {
-    blinkContainer.classList.toggle("smooth", (e.target as HTMLInputElement).checked);
+    state.smooth = (e.target as HTMLInputElement).checked;
+    blinkContainer.classList.toggle("smooth", state.smooth);
+    writeStateToUrl(state);
   });
   el<HTMLInputElement>("player-contrast").addEventListener("input", (e) => {
     const value = (e.target as HTMLInputElement).value;
+    state.contrast = Number(value) || 1;
     // Only attach the CSS filter while it actually does something -- see
     // .blink-container.contrasted in style.css for why a no-op filter
     // still costs sharpness.
     blinkContainer.classList.toggle("contrasted", value !== "1");
     blinkContainer.style.setProperty("--frame-contrast", value);
+    writeStateToUrl(state);
   });
   el<HTMLInputElement>("player-j2000").addEventListener("change", (e) => {
     player.setJ2000MarkerEnabled((e.target as HTMLInputElement).checked);
@@ -362,6 +366,18 @@ async function init(): Promise<void> {
   applyLang(state.lang);
   fovInput.value = String(state.fov);
   modeSelect.value = state.mode;
+  // Shareable display preferences (&smooth=1&contrast=1.4): a demo link
+  // can carry the soft interpolated look without changing the honest
+  // pixelated default.
+  if (state.smooth) {
+    el<HTMLInputElement>("player-smooth").checked = true;
+    blinkContainer.classList.add("smooth");
+  }
+  if (state.contrast !== 1) {
+    el<HTMLInputElement>("player-contrast").value = String(state.contrast);
+    blinkContainer.classList.add("contrasted");
+    blinkContainer.style.setProperty("--frame-contrast", String(state.contrast));
+  }
   if (state.lowBandwidth) {
     document.body.classList.add("low-bandwidth");
     el<HTMLButtonElement>("lowbw-toggle").setAttribute("aria-pressed", "true");

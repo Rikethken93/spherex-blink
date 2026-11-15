@@ -5,6 +5,11 @@ export interface AppState {
   mode: string;
   lang: string;
   lowBandwidth: boolean;
+  // Display preferences, shareable via URL so a demo link can carry the
+  // soft interpolated look (&smooth=1&contrast=1.4). Defaults stay
+  // honest-pixels / neutral.
+  smooth: boolean;
+  contrast: number;
 }
 
 const DEFAULTS: AppState = {
@@ -21,7 +26,14 @@ const DEFAULTS: AppState = {
   // one-click toggle or an explicit ?lang=es away, not auto-detected.
   lang: "en",
   lowBandwidth: false,
+  smooth: false,
+  contrast: 1,
 };
+
+function clampContrast(value: number): number {
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(2.5, Math.max(0.5, value));
+}
 
 export function readStateFromUrl(): AppState {
   const params = new URLSearchParams(window.location.search);
@@ -32,6 +44,8 @@ export function readStateFromUrl(): AppState {
     mode: params.get("mode") ?? DEFAULTS.mode,
     lang: params.get("lang") ?? DEFAULTS.lang,
     lowBandwidth: params.get("lowbw") === "1",
+    smooth: params.get("smooth") === "1",
+    contrast: params.has("contrast") ? clampContrast(Number(params.get("contrast"))) : DEFAULTS.contrast,
   };
 }
 
@@ -43,6 +57,8 @@ export function writeStateToUrl(state: AppState, replace = true): void {
   params.set("mode", state.mode);
   params.set("lang", state.lang);
   if (state.lowBandwidth) params.set("lowbw", "1");
+  if (state.smooth) params.set("smooth", "1");
+  if (state.contrast !== 1) params.set("contrast", String(state.contrast));
   const url = `${window.location.pathname}?${params.toString()}`;
   if (replace) window.history.replaceState(null, "", url);
   else window.history.pushState(null, "", url);
@@ -55,6 +71,8 @@ export function shareUrl(state: AppState): string {
   params.set("fov", String(state.fov));
   params.set("mode", state.mode);
   params.set("lang", state.lang);
+  if (state.smooth) params.set("smooth", "1");
+  if (state.contrast !== 1) params.set("contrast", String(state.contrast));
   return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 }
 
