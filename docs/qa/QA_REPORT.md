@@ -151,6 +151,15 @@ the VM. The two real options are:
 No code change was made for this finding, by design -- see "Fixes applied"
 below for what *was* in scope to fix.
 
+**Update: resolved.** The team added a payment method to the Fly.io account
+(`https://fly.io/dashboard/personal/billing`), which lifts the trial's
+5-minute cap. Re-verified by re-running the exact same `fov=1` then `fov=10`
+sequence that previously triggered the kill: `fov=1` took 68s, `fov=10` took
+254s, for a combined **323 seconds (5m23s) of continuous machine uptime**
+on the same machine (`6835455a457768`) -- both returned `200 OK`, and
+`fly logs` for that entire window contains zero occurrences of `Trial`,
+`OOM`, `Out of memory`, or `exited abruptly`. The constraint is gone.
+
 ## Root-cause notes on the 4 apparent failures
 
 1. **`rw-aurigae / rgb` (section 2) and `Light curve: rw-aurigae` (section
@@ -213,10 +222,10 @@ See `docs/qa/screenshots/` -- one `02-<target>.png` per gallery target
 
 ## Recommendation
 
-**Decide on the Fly.io trial-limit question above before relying on this
-deployment for live judging.** Everything else in this report is clean: 0
-reproducible app bugs, 0 console errors, 0 serious/critical accessibility
-violations, all 8 targets x 4 modes verified with matching frame/epoch
-counts, mobile layout clean, CORS correct, and the progressive
-loading-message / friendly-error UX added in the prior session confirmed
-working end-to-end on genuinely slow and genuinely invalid inputs alike.
+**Resolved -- see the update above.** With the Fly.io trial cap lifted,
+this deployment has 0 known reproducible app bugs, 0 console errors, 0
+serious/critical accessibility violations, all 8 targets x 4 modes verified
+with matching frame/epoch counts, mobile layout clean, CORS correct, and
+the progressive loading-message / friendly-error UX confirmed working
+end-to-end on genuinely slow and genuinely invalid inputs alike. Clear to
+rely on for live judging.
