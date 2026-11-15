@@ -235,11 +235,21 @@ export class BlinkPlayer {
     const nw = this.img.naturalWidth;
     const nh = this.img.naturalHeight;
     if (!nw || !nh) return;
-    const available = Math.min(this.container.clientWidth || nw, MAX_DISPLAY_PX);
-    const k = Math.max(1, Math.floor(available / nw));
-    const width = nw * k;
+    // All integer math happens in *device* pixels, not CSS pixels: on a
+    // display with fractional scaling (devicePixelRatio 1.25/1.5/1.67...,
+    // common on Linux/Windows laptops), "406 CSS px" lands on a
+    // non-integer number of physical pixels, so each image pixel spans
+    // e.g. 1.67 device px and pixelated rendering produces uneven,
+    // softened blocks no matter how careful the CSS-pixel alignment is
+    // (observed on a 165%-scaled screen). Choosing a whole number of
+    // device pixels per image pixel and converting back to (possibly
+    // fractional) CSS px keeps every block identical and crisp.
+    const dpr = window.devicePixelRatio || 1;
+    const availableCss = Math.min(this.container.clientWidth || nw, MAX_DISPLAY_PX);
+    const kDev = Math.max(1, Math.floor((availableCss * dpr) / nw));
+    const width = (nw * kDev) / dpr;
     this.img.style.width = `${width}px`;
-    this.img.style.height = `${nh * k}px`;
+    this.img.style.height = `${(nh * kDev) / dpr}px`;
     // Center manually -- see the CSS comment on .blink-container for why
     // justify-content can't be trusted to land on a whole pixel. Rounding
     // the margin against the immediate container isn't enough on its own:
@@ -262,9 +272,12 @@ export class BlinkPlayer {
     this.img.style.marginLeft = "0px";
     this.img.style.marginTop = "0px";
     const r0 = this.img.getBoundingClientRect();
-    this.img.style.marginLeft = `${Math.round(r0.left + idealMargin) - r0.left}px`;
+    // Snap the edge to a whole *device* pixel (CSS-pixel rounding is only
+    // equivalent when devicePixelRatio is an integer).
+    const snap = (cssPos: number) => Math.round(cssPos * dpr) / dpr;
+    this.img.style.marginLeft = `${snap(r0.left + idealMargin) - r0.left}px`;
     const r1 = this.img.getBoundingClientRect();
-    this.img.style.marginTop = `${Math.round(r1.top) - r1.top}px`;
+    this.img.style.marginTop = `${snap(r1.top) - r1.top}px`;
   }
 
   private updateScaleBar(): void {

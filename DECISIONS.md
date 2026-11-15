@@ -724,3 +724,19 @@ decisions, appended as each milestone lands.)
      single re-align pass 250ms after each frame load to absorb late
      reflows. Verified on production at devicePixelRatio 1 and 2:
      fracLeft/fracTop exactly 0, `filter: none`, frame visible in ~1.7s.
+
+- Second follow-up to the blurriness report: the user's screen runs
+  fractional display scaling (~165%), where the previous integer-scaling
+  logic -- correct in *CSS* pixels -- still mapped each image pixel onto
+  1.67 *physical* pixels, rendering uneven softened blocks. The user's
+  screenshots (17:45/17:56) also predated both earlier fixes (deployed
+  17:52/18:02) in a session holding the old JS bundle. `player.ts` now
+  does all integer math in device pixels (whole device pixels per image
+  pixel, edge snapped to a whole device pixel, converting back to
+  possibly-fractional CSS px), verified live at devicePixelRatio 1.25,
+  1.65 and 2: exactly 1/2/3 device px per image pixel, edge fraction
+  <=0.013 device px. Note for the record: UGPS 0722 in sum mode at 3'
+  (the view in the user's screenshots) is a genuine 29x29-native-pixel
+  image of a faint field -- it looks soft because the data is that
+  coarse, which the on-page pixel note already explains; the dramatic
+  before/after is on Proxima/Barnard blink.
