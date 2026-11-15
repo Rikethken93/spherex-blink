@@ -1,11 +1,38 @@
 [
   {
-    "mjd": 61113.60875023009,
+    "mjd": 60828.700593399546,
     "mjd_min": 60789.879611007,
+    "mjd_max": 60878.608219456,
+    "flux": null,
+    "error": null,
+    "n_exposures": 252,
+    "flag_fraction": 0.18212965718665186
+  },
+  {
+    "mjd": 60968.321253975366,
+    "mjd_min": 60916.37050831,
+    "mjd_max": 61053.414625648,
+    "flux": null,
+    "error": null,
+    "n_exposures": 475,
+    "flag_fraction": 0.18101008188073053
+  },
+  {
+    "mjd": 61124.39062760171,
+    "mjd_min": 61079.481883009,
+    "mjd_max": 61183.494981852,
+    "flux": null,
+    "error": null,
+    "n_exposures": 957,
+    "flag_fraction": 0.16783945969371664
+  },
+  {
+    "mjd": 61268.881576878885,
+    "mjd_min": 61198.973129954,
     "mjd_max": 61310.29117515,
     "flux": null,
     "error": null,
-    "n_exposures": 2529,
-    "flag_fraction": 0.18242460313901096
+    "n_exposures": 843,
+    "flag_fraction": 0.19989106562405895
   }
 ]
