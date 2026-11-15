@@ -222,6 +222,13 @@ function wireSearchForm(): void {
 
 function wirePlayerControls(): void {
   el<HTMLButtonElement>("player-playpause").addEventListener("click", () => {
+    // Deep stack / Difference / RGB produce a single image -- play()
+    // correctly no-ops there, but a button that silently does nothing
+    // reads as broken. Say why, and point at the mode that animates.
+    if (player.frameCount() < 2) {
+      setStatus(t("player.single_frame_hint"));
+      return;
+    }
     player.togglePlay();
     el<HTMLButtonElement>("player-playpause").textContent = player.isPlaying() ? t("player.pause") : t("player.play");
   });

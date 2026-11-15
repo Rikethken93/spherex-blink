@@ -740,3 +740,12 @@ decisions, appended as each milestone lands.)
   image of a faint field -- it looks soft because the data is that
   coarse, which the on-page pixel note already explains; the dramatic
   before/after is on Proxima/Barnard blink.
+
+- Play-button UX (user report "no da play", 2026-11-15 evening): the
+  user was in RGB-composite mode, where the product is a single image
+  and play() correctly no-ops -- but a button that silently does nothing
+  reads as broken. Clicking Play with fewer than 2 frames now explains
+  itself in the status line ("this mode produces a single image --
+  switch Mode to Blink to animate", EN/ES) instead of doing nothing.
+  Blink playback itself verified advancing live (frame_0->1->2 loop at
+  the default 2 fps) right after deploying.

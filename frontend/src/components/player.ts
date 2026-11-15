@@ -181,6 +181,10 @@ export class BlinkPlayer {
     else this.play();
   }
 
+  frameCount(): number {
+    return this.frames.length;
+  }
+
   stepNext(): void {
     this.pause();
     this.advance();
