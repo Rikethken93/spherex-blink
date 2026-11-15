@@ -1,6 +1,6 @@
 {
-  "ra_deg": 162.30872402400752,
-  "dec_deg": -53.317569840017626,
+  "ra_deg": 162.30872273410387,
+  "dec_deg": -53.31756974024766,
   "fov_arcmin": 3.0,
   "mode": "blink",
   "detector": null,
@@ -41,7 +41,7 @@
       "mjd_max": 61074.028473299,
       "mjd_mean": 61045.4152613541,
       "n_exposures": 143,
-      "flag_fraction": 0.054914901251679804,
+      "flag_fraction": 0.0549149012516798,
       "detectors": [
         1,
         2,
@@ -64,7 +64,7 @@
       "mjd_max": 61242.443016238,
       "mjd_mean": 61208.1977008099,
       "n_exposures": 185,
-      "flag_fraction": 0.05794078798647296,
+      "flag_fraction": 0.057940787986472946,
       "detectors": [
         1,
         2,

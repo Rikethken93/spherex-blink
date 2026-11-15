@@ -503,5 +503,38 @@ format: **Decision** — Alternatives considered — Reason.
   (resolve + the live IRSA frames fetch the fallback position still
   requires) completed end-to-end on the production site.
 
+- User reported a screenshot still looking "distorted", not just small
+  (2026-11-15), after the earlier CSS pixelated-rendering fix. Root cause
+  was deeper than CSS: `render.py` drew the proper-motion crosshair at a
+  *fixed pixel size* (6px arm) directly onto the native array before any
+  scaling -- on a genuine ~29x29px cutout (SPHEREx's ~6.2"/pixel scale at
+  a 3' FOV), that crosshair spans more than half the frame, reading as a
+  big red blob rather than a small marker. Fixed in
+  `backend/app/pipeline/render.py`: added `_upsample_nearest()` (nearest-
+  neighbor block-repeat, matching the CSS `pixelated` treatment -- crisp
+  real pixels, not invented smooth detail) that brings every rendered
+  frame (`_png_bytes_gray`, `render_difference`, `render_rgb`) up to a
+  sane minimum on-screen size *before* `_draw_crosshair` runs, so the
+  marker is drawn proportionally correct regardless of the native cutout
+  size (which varies 10-145px across this app's 1'-15' FOV range).
+  Verified live after redeploying + re-running `scripts/precache.py`
+  (the fix only affects newly-rendered PNGs -- cached ones needed
+  regenerating, since the Docker image bakes `backend/cache/` in at build
+  time): Barnard's Star blink mode now renders at 406x406 with a small,
+  correctly-proportioned crosshair instead of 29x29 with an oversized one.
+  - Re-running precache hit two more live-archive problems the same day:
+    Gaia DR3 fell back to the static Sesame position again (still the
+    ongoing outage from the earlier entry), and IRSA's own SIA capabilities
+    endpoint started returning a flat `502` mid-session (confirmed
+    directly: `curl .../SIA/capabilities` -> 502), which is a distinct,
+    harder failure than the SIA cutout-fetch flakiness seen earlier --
+    blocked backfilling RGB mode for 7 of the 8 targets (blink/sum/
+    difference for all 8, and everything for R Draconis, did complete
+    before IRSA went down). RGB mode for those 7 targets will still show
+    the old small-crosshair image until IRSA recovers and the backfill is
+    re-run (`scripts/precache.py --targets
+    barnards-star,epsilon-indi-b,wise0855,rw-aurigae,proxima-centauri,
+    luhman-16,ugps0722 --modes rgb`).
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)

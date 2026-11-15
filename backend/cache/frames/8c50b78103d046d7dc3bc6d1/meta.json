@@ -1,6 +1,6 @@
 {
-  "ra_deg": 133.7578906511123,
-  "dec_deg": -7.242088665234145,
+  "ra_deg": 133.757887733552,
+  "dec_deg": -7.242088425390298,
   "fov_arcmin": 3.0,
   "mode": "blink",
   "detector": null,
@@ -39,9 +39,9 @@
     {
       "mjd_min": 60979.722677164,
       "mjd_max": 61022.368105475,
-      "mjd_mean": 60991.42102044226,
-      "n_exposures": 122,
-      "flag_fraction": 0.04008693787645465,
+      "mjd_mean": 60991.32261808718,
+      "n_exposures": 128,
+      "flag_fraction": 0.04035374554102259,
       "detectors": [
         1,
         2,
@@ -62,9 +62,9 @@
     {
       "mjd_min": 61151.197933206,
       "mjd_max": 61174.287217755,
-      "mjd_mean": 61161.85571980071,
-      "n_exposures": 99,
-      "flag_fraction": 0.04571546390809173,
+      "mjd_mean": 61161.924953326605,
+      "n_exposures": 101,
+      "flag_fraction": 0.045328213813397654,
       "detectors": [
         1,
         2,
@@ -83,6 +83,6 @@
       ]
     }
   ],
-  "n_exposures_total": 251,
+  "n_exposures_total": 259,
   "cache_hit": false
 }
