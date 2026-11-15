@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from . import config, service
+from . import config, precache_manifest, service
 from .coords import parse_dec_deg, parse_ra_deg
 from .errors import InvalidRequestError, NoCoverageError
 from .net import UpstreamUnavailable
@@ -53,6 +53,15 @@ def health():
 
 @app.get("/api/targets")
 def targets():
+    # cached_positions carries exactly what scripts/precache.py has baked
+    # in for each target: the real resolved ra/dec per FOV it precached
+    # (which can differ from fallback_ra_deg/dec_deg -- these are a static
+    # anchor, not what caching actually used) and which modes are complete
+    # there. The frontend's gallery uses this to pick a FOV/mode it knows
+    # is cached and go straight there -- never discovering a gap by trying
+    # a live fetch for one of these 8 demo targets (see DECISIONS.md,
+    # 2026-11-15).
+    manifest = precache_manifest.read()
     return [
         {
             "key": t.key,
@@ -62,6 +71,7 @@ def targets():
             "note": t.note,
             "ra_deg": t.fallback_ra_deg,
             "dec_deg": t.fallback_dec_deg,
+            "cached_positions": manifest.get(t.key, {}),
         }
         for t in ALL_TARGETS
     ]

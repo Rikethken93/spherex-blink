@@ -71,6 +71,8 @@ def _fetch_and_stack(
     wl_min: float | None = None,
     wl_max: float | None = None,
     epoch_gap_days: float | None = None,
+    max_workers: int | None = None,
+    jitter_range_seconds: tuple[float, float] | None = None,
 ):
     """Query + fetch + epoch-group + reproject-stack once. Shared by
     get_frames/get_spectrum/get_lightcurve (each still caches its own
@@ -94,7 +96,9 @@ def _fetch_and_stack(
             "a different wavelength range, or check back after the next data release."
         )
 
-    exposures = fetch_exposures(metas, ra_deg, dec_deg, fov_arcmin)
+    exposures = fetch_exposures(
+        metas, ra_deg, dec_deg, fov_arcmin, max_workers=max_workers, jitter_range_seconds=jitter_range_seconds
+    )
     if not exposures:
         raise NoCoverageError(
             "SPHEREx metadata exists for this position but no cutout could be "
@@ -239,7 +243,13 @@ def get_lightcurve(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV
 
 
 def precache_all(
-    ra_deg: float, dec_deg: float, fov_arcmin: float, modes: list[str], epoch_gap_days: float | None = None
+    ra_deg: float,
+    dec_deg: float,
+    fov_arcmin: float,
+    modes: list[str],
+    epoch_gap_days: float | None = None,
+    max_workers: int | None = None,
+    jitter_range_seconds: tuple[float, float] | None = None,
 ) -> dict:
     """Used only by scripts/precache.py: fetch a target's exposures exactly
     once and populate the frames (every requested mode), spectrum, and
@@ -248,7 +258,14 @@ def precache_all(
     cache (correct for an arbitrary live query), which would cost three
     full IRSA fetches per target here for no benefit, since all three are
     about to be cached for the exact same position anyway."""
-    exposures, epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin, epoch_gap_days=epoch_gap_days)
+    exposures, epochs, stacked_epochs = _fetch_and_stack(
+        ra_deg,
+        dec_deg,
+        fov_arcmin,
+        epoch_gap_days=epoch_gap_days,
+        max_workers=max_workers,
+        jitter_range_seconds=jitter_range_seconds,
+    )
     epoch_meta = _epoch_metadata(epochs, stacked_epochs)
 
     results: dict[str, object] = {"n_exposures_total": len(exposures), "n_epochs": len(epochs)}

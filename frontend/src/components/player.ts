@@ -176,8 +176,26 @@ export class BlinkPlayer {
     if (!nw || !nh) return;
     const available = Math.min(this.container.clientWidth || nw, MAX_DISPLAY_PX);
     const k = Math.max(1, Math.floor(available / nw));
-    this.img.style.width = `${nw * k}px`;
+    const width = nw * k;
+    this.img.style.width = `${width}px`;
     this.img.style.height = `${nh * k}px`;
+    // Center manually -- see the CSS comment on .blink-container for why
+    // justify-content can't be trusted to land on a whole pixel. Rounding
+    // the margin against the immediate container isn't enough on its own:
+    // an *ancestor* can still contribute its own fractional offset to the
+    // final on-screen position, which no local arithmetic can predict in
+    // advance. So: set a first-pass rounded margin, measure where the
+    // browser actually put it, and cancel out whatever fractional pixel
+    // remains -- guaranteeing the final edge lands on a whole device
+    // pixel, which pixelated image-rendering needs to actually read as
+    // crisp rather than softened at the boundary.
+    const containerWidth = this.container.clientWidth;
+    const idealMargin = Math.max(0, (containerWidth - width) / 2);
+    this.img.style.marginLeft = `${Math.round(idealMargin)}px`;
+    const rectBefore = this.img.getBoundingClientRect();
+    this.img.style.marginLeft = `${idealMargin + (Math.round(rectBefore.left) - rectBefore.left)}px`;
+    const rectAfter = this.img.getBoundingClientRect();
+    this.img.style.marginTop = `${Math.round(rectAfter.top) - rectAfter.top}px`;
   }
 
   private updateScaleBar(): void {

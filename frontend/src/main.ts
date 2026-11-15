@@ -123,6 +123,31 @@ async function loadAndShow(raDeg: number, decDeg: number, fovArcmin: number, mod
   }
 }
 
+// Shared by the live-resolve path (runSearch) and the cache-manifest path
+// (onGalleryPick) -- both end up with the same four things (position,
+// FOV, optional proper motion, optional warning) and need to do the same
+// thing with them: update the URL, load the frames, draw the PM arrow.
+async function showResolvedTarget(
+  raDeg: number,
+  decDeg: number,
+  fovArcmin: number,
+  mode: string,
+  pmraMasYr: number | null,
+  pmdecMasYr: number | null,
+  warning: string | null,
+): Promise<void> {
+  state.ra = String(raDeg);
+  state.dec = String(decDeg);
+  state.fov = fovArcmin;
+  fovInput.value = String(fovArcmin);
+  writeStateToUrl(state);
+  if (warning) setStatus(warning);
+  await loadAndShow(raDeg, decDeg, fovArcmin, mode);
+  if (pmraMasYr != null && pmdecMasYr != null) {
+    drawProperMotionArrow(raDeg, decDeg, pmraMasYr, pmdecMasYr);
+  }
+}
+
 async function runSearch(query: string, fov: number, mode: string): Promise<void> {
   state.fov = fov;
   state.mode = mode;
@@ -149,14 +174,9 @@ async function runSearch(query: string, fov: number, mode: string): Promise<void
   try {
     const resolved = await resolveName(query);
     stopLoading();
-    state.ra = String(resolved.ra_deg);
-    state.dec = String(resolved.dec_deg);
-    writeStateToUrl(state);
-    if (resolved.warning) setStatus(resolved.warning);
-    await loadAndShow(resolved.ra_deg, resolved.dec_deg, fov, mode);
-    if (resolved.pmra_mas_yr != null && resolved.pmdec_mas_yr != null) {
-      drawProperMotionArrow(resolved.ra_deg, resolved.dec_deg, resolved.pmra_mas_yr, resolved.pmdec_mas_yr);
-    }
+    await showResolvedTarget(
+      resolved.ra_deg, resolved.dec_deg, fov, mode, resolved.pmra_mas_yr, resolved.pmdec_mas_yr, resolved.warning,
+    );
   } catch {
     stopLoading();
     setStatus(t("error.generic"));
@@ -245,13 +265,32 @@ function wireTutorial(): void {
   el<HTMLButtonElement>("tutorial-close").addEventListener("click", () => el<HTMLDialogElement>("tutorial-dialog").close());
 }
 
+// Preferred-first list of FOVs to try against a target's cached_positions
+// -- 6' is the app's own default (more context), falling back to 3' (the
+// originally-precached FOV, always complete for all 8 demo targets) if
+// 6' isn't done yet for this target/mode. Never falls through to a live
+// resolve()+fetch for a gallery target: if neither is cached for the
+// current mode, this is a genuine precache gap (see DECISIONS.md,
+// 2026-11-15, for which targets/modes that still applies to) and the
+// click is a no-op with a status message rather than a slow surprise.
+const GALLERY_FOV_PREFERENCE = ["6", "3"];
+
 function onGalleryPick(target: TargetInfo): void {
   searchInput.value = target.display_name[getLang() === "es" ? "es" : "en"];
-  // Resolve by key (not the raw fallback ra/dec) so this hits the same
-  // Gaia-DR3-proper-motion-corrected position precache.py computed -- the
-  // static fallback coordinates alone would miss the pre-cached entry and
-  // fall back to a slow live query.
-  void runSearch(target.key, Number(fovInput.value), modeSelect.value);
+  const mode = modeSelect.value;
+  const positions = target.cached_positions ?? {};
+
+  for (const fovKey of GALLERY_FOV_PREFERENCE) {
+    const entry = positions[fovKey];
+    if (entry && entry.modes.includes(mode)) {
+      void showResolvedTarget(
+        entry.ra_deg, entry.dec_deg, Number(fovKey), mode, entry.pmra_mas_yr, entry.pmdec_mas_yr, null,
+      );
+      return;
+    }
+  }
+
+  setStatus(t("gallery.not_cached"));
 }
 
 async function loadGallery(): Promise<void> {

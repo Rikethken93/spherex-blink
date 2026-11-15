@@ -53,6 +53,14 @@ export interface LightCurvePoint {
   flag_fraction: number;
 }
 
+export interface CachedPosition {
+  ra_deg: number;
+  dec_deg: number;
+  modes: string[];
+  pmra_mas_yr: number | null;
+  pmdec_mas_yr: number | null;
+}
+
 export interface TargetInfo {
   key: string;
   display_name: { en: string; es: string };
@@ -61,6 +69,11 @@ export interface TargetInfo {
   note: { en: string; es: string };
   ra_deg: number;
   dec_deg: number;
+  // Keyed by FOV as a string (e.g. "3", "6") -- exactly what
+  // scripts/precache.py has baked in, read from the backend's on-disk
+  // manifest. Empty/missing means nothing is known to be cached for that
+  // FOV; the gallery never searches a FOV/mode that isn't listed here.
+  cached_positions: Record<string, CachedPosition>;
 }
 
 export class ApiError extends Error {

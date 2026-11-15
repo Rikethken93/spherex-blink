@@ -44,6 +44,7 @@
   "gallery.title": "Explore",
   "gallery.required": "Required demo targets",
   "gallery.extra": "More targets from the southern sky",
+  "gallery.not_cached": "This mode isn't pre-cached for this target yet -- try Blink, or Sum/Difference.",
   "tutorial.button": "How to spot a moving object",
   "tutorial.title": "How to spot a moving object",
   "tutorial.p1": "In a blink animation, every frame is a different epoch of the same patch of sky, scaled identically. A star that doesn't move will sit on the same pixel in every frame.",

@@ -277,8 +277,13 @@ body.low-bandwidth .starfield {
    hero, just enough to say "this is a screen you're looking into." */
 .blink-container {
   position: relative;
+  /* Centering is done in JS (components/player.ts), not here: flexbox's
+     own justify-content: center math can land the image on a fractional
+     device pixel (observed live via getBoundingClientRect), which blurs
+     an otherwise pixel-perfect, integer-scaled image at paint time no
+     matter how correct image-rendering: pixelated is. Rounding the
+     offset explicitly is the only way to guarantee a whole-pixel edge. */
   display: flex;
-  justify-content: center;
   background: #000;
   border-radius: 6px;
   overflow: hidden;

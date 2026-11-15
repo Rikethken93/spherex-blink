@@ -119,6 +119,18 @@ HTTP_TIMEOUT_SECONDS = 60.0
 # hundreds of exposures; fetched concurrently rather than one at a time.
 HTTP_CONCURRENCY = 12
 
+# scripts/precache.py uses these instead of HTTP_CONCURRENCY -- IRSA was
+# observed live (2026-11-15) returning frequent 503s under the live API's
+# normal 12-way concurrency, and a precache run has no user waiting on a
+# single response, so there's no reason to burst it the same way. A low
+# concurrency with randomized spacing between requests is the gentler
+# access pattern (and happens to also make a re-run safely resumable
+# together with the per-exposure disk cache in irsa_client.py: whatever
+# already downloaded on a prior, interrupted run is skipped, not
+# re-fetched).
+PRECACHE_CONCURRENCY = 2
+PRECACHE_JITTER_RANGE_SECONDS = (1.0, 3.0)
+
 # --- Cache -------------------------------------------------------------------
 import os
 
@@ -126,4 +138,11 @@ CACHE_DIR = os.environ.get(
     "SPHEREX_BLINK_CACHE_DIR",
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cache"),
 )
+# Raw per-exposure cutout FITS bytes, keyed by their exact cutout URL --
+# separate from CACHE_DIR's rendered products (frames/spectrum/lightcurve,
+# which are the only things baked into the Docker image, see
+# backend/.dockerignore). This is what makes scripts/precache.py resumable:
+# a re-run after an interrupted/failed attempt skips every exposure already
+# on disk instead of re-downloading the whole target from scratch.
+EXPOSURE_CACHE_DIR = os.path.join(CACHE_DIR, ".exposures")
 DATA_RELEASE_TAG = "dr1_qr3"  # bump when SIA_COLLECTIONS changes meaningfully

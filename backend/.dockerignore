@@ -1,0 +1,4 @@
+# Raw per-exposure cutout bytes (app/irsa_client.py's resumability cache) --
+# scratch intermediate data the running app never reads; only the rendered
+# products (frames/spectrum/lightcurve) need to ship in the image.
+cache/.exposures/

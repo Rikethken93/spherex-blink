@@ -23,3 +23,7 @@ frontend/.vite/
 
 # Keep the precached demo data, but not ad-hoc local scratch cache entries
 backend/cache/.tmp/
+# Raw per-exposure cutout bytes (app/irsa_client.py's resumability cache) --
+# scratch intermediate data, not something the app or image needs; only the
+# rendered products above (frames/spectrum/lightcurve) are kept.
+backend/cache/.exposures/

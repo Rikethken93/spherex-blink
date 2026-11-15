@@ -10,9 +10,13 @@ cutout, never the full exposure.
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import logging
+import os
+import random
 import re
+import time
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -125,26 +129,48 @@ def query_exposure_metadata(
     return rows
 
 
+def _exposure_cache_path(url: str) -> str:
+    digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:32]
+    return os.path.join(config.EXPOSURE_CACHE_DIR, f"{digest}.fits")
+
+
 def fetch_cutout(meta: ExposureMeta, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Exposure:
     """Download the server-side cutout FITS for one exposure and parse its
-    IMAGE/FLAGS/VARIANCE extensions, spatial WCS and spectral ("W") WCS."""
+    IMAGE/FLAGS/VARIANCE extensions, spatial WCS and spectral ("W") WCS.
+
+    The raw bytes are cached on disk by URL (independent of the rendered
+    products in config.CACHE_DIR) so an interrupted precache run -- IRSA
+    returning a wave of 503s partway through a target, say -- can be
+    re-run and only fetch what's still missing, instead of re-downloading
+    every exposure again from scratch."""
     size_deg = fov_arcmin / 60.0
     url = config.CUTOUT_URL_TEMPLATE.format(
         access_url=meta.access_url, ra_deg=ra_deg, dec_deg=dec_deg, size_deg=size_deg
     )
+    cache_path = _exposure_cache_path(url)
 
-    def _call() -> bytes:
-        resp = requests.get(url, timeout=config.HTTP_TIMEOUT_SECONDS)
-        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-            # A 4xx other than 429 (rate limited) means this specific
-            # request is malformed or this specific exposure is
-            # unavailable -- retrying the identical request will never
-            # change that.
-            raise NonRetryable(f"HTTP {resp.status_code} for {meta.obs_id}: {resp.text[:200]}")
-        resp.raise_for_status()
-        return resp.content
+    if os.path.exists(cache_path):
+        with open(cache_path, "rb") as fh:
+            content = fh.read()
+    else:
 
-    content = with_backoff(_call, what=f"cutout fetch {meta.obs_id}")
+        def _call() -> bytes:
+            resp = requests.get(url, timeout=config.HTTP_TIMEOUT_SECONDS)
+            if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+                # A 4xx other than 429 (rate limited) means this specific
+                # request is malformed or this specific exposure is
+                # unavailable -- retrying the identical request will never
+                # change that.
+                raise NonRetryable(f"HTTP {resp.status_code} for {meta.obs_id}: {resp.text[:200]}")
+            resp.raise_for_status()
+            return resp.content
+
+        content = with_backoff(_call, what=f"cutout fetch {meta.obs_id}")
+        os.makedirs(config.EXPOSURE_CACHE_DIR, exist_ok=True)
+        tmp_path = f"{cache_path}.tmp{os.getpid()}"
+        with open(tmp_path, "wb") as fh:
+            fh.write(content)
+        os.replace(tmp_path, cache_path)  # atomic -- never leaves a partial file at cache_path
 
     with fits.open(io.BytesIO(content)) as hdul:
         image_hdu = hdul[config.FITS_EXTENSIONS["image"]]
@@ -177,20 +203,37 @@ def fetch_cutout(meta: ExposureMeta, ra_deg: float, dec_deg: float, fov_arcmin: 
 
 
 def fetch_exposures(
-    metas: list[ExposureMeta], ra_deg: float, dec_deg: float, fov_arcmin: float
+    metas: list[ExposureMeta],
+    ra_deg: float,
+    dec_deg: float,
+    fov_arcmin: float,
+    max_workers: int | None = None,
+    jitter_range_seconds: tuple[float, float] | None = None,
 ) -> list[Exposure]:
     """Fetch every cutout concurrently -- a single field (especially a
     SPHEREx "deep" survey position) can have hundreds of individual
     exposures, and these are plain I/O-bound HTTP downloads, so a thread
-    pool turns a many-minutes sequential fetch into something usable live."""
+    pool turns a many-minutes sequential fetch into something usable live.
+
+    max_workers/jitter_range_seconds default to the live-API's normal
+    concurrency (config.HTTP_CONCURRENCY, no jitter) -- a live request has
+    a user waiting on it. scripts/precache.py passes the much gentler
+    config.PRECACHE_CONCURRENCY/PRECACHE_JITTER_RANGE_SECONDS instead: IRSA
+    was observed (2026-11-15) returning frequent 503s under a burst of 12
+    concurrent requests, and nothing is waiting synchronously on a precache
+    run, so there's no reason to hit it the same way."""
+    workers = max_workers if max_workers is not None else config.HTTP_CONCURRENCY
     exposures: list[Exposure] = []
     if not metas:
         return exposures
 
-    with ThreadPoolExecutor(max_workers=config.HTTP_CONCURRENCY) as pool:
-        futures = {
-            pool.submit(fetch_cutout, meta, ra_deg, dec_deg, fov_arcmin): meta for meta in metas
-        }
+    def _fetch_one(meta: ExposureMeta) -> Exposure:
+        if jitter_range_seconds is not None:
+            time.sleep(random.uniform(*jitter_range_seconds))
+        return fetch_cutout(meta, ra_deg, dec_deg, fov_arcmin)
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_fetch_one, meta): meta for meta in metas}
         for future in as_completed(futures):
             meta = futures[future]
             try:
