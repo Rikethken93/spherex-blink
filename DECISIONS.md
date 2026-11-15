@@ -320,5 +320,43 @@ format: **Decision** — Alternatives considered — Reason.
   before calling this done -- a submission with a dead or unverified
   "live demo" link is worse than no link at all.
 
+- **Visual redesign grounded in the subject, not a generic facelift.**
+  Palette: a night-sky indigo-black ground (`#0a0d18`) vs. a star-atlas-
+  paper light ground (`#f6f3ec`); an "infrared ember" accent
+  (`#e8793f`/`#a8441a`) chosen deliberately -- SPHEREx observes in
+  infrared, and observatories have historically used red light to
+  preserve night vision, so the accent is a real double reference, not a
+  generic neon pop (explicitly avoided the "near-black with one acid-
+  green/vermilion accent" cliché by giving the ember accent an actual
+  reason to exist and a second, distinct cool accent for a different
+  semantic role). Type: Fraunces (a characterful serif, used sparingly
+  for the title and section heads only -- evokes old star-atlas/journal
+  typography) + IBM Plex Sans for UI (real technical-documentation
+  heritage, not the generic "Inter/Space Grotesk" default) + IBM Plex
+  Mono for every numeric value (coordinates, dates, wavelengths),
+  tabular-aligned. All contrast pairs verified ≥4.5:1 (text) / ≥3:1
+  (focus ring, UI elements) in both themes before implementation, not
+  after.
+  - A quiet ambient canvas starfield (`frontend/src/components/
+    starfield.ts`) is confined to the header band only -- not the whole
+    page -- with gentle mouse parallax across three depth layers. It
+    reads its star color from the `--text` CSS custom property at
+    runtime so it inverts correctly between themes (light dots on the
+    dark ground, dark dots on the light ground) instead of vanishing in
+    one theme, which is what a hardcoded color would have done. It's
+    pure Canvas 2D (no Three.js/WebGL), skipped entirely in low-bandwidth
+    mode, and pauses its animation loop on tab-hidden; a
+    prefers-reduced-motion check renders one static frame with no
+    parallax and no RAF loop at all.
+  - The blink viewport got an "instrument display" treatment (dark
+    bezel, inset ring, soft accent-tinted glow) rather than a styling
+    pass identical to every other panel, since it's the one element
+    users actually watch.
+  - Boldness was spent in one place (header, primary action button,
+    epoch/category badges) and kept quiet everywhere else (tables,
+    charts, secondary buttons) per the "scanned, not read" nature of a
+    data tool -- this is editorial for the identity, informational for
+    the instruments.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)

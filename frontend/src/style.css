@@ -1,24 +1,47 @@
+/* ============================================================
+   SPHEREx Blink -- design tokens
+   Night-sky dark ground as the primary mode (the subject is an
+   all-sky infrared survey); an "infrared ember" accent doubles as a
+   reference to both SPHEREx's own wavelength range and the red light
+   observatories have long used to preserve night vision. A cool
+   "starlight" cyan is reserved for a second, distinct semantic use
+   (never mixed with the main accent on the same element).
+   ============================================================ */
 :root {
-  --bg: #0d1117;
-  --bg-elevated: #161b22;
-  --text: #e6edf3;
-  --text-muted: #9198a1;
-  --border: #30363d;
-  --accent: #58a6ff;
-  --accent-text: #0d1117;
-  --focus-ring: #ffd43b;
+  --bg: #0a0d18;
+  --bg-elevated: #131a2e;
+  --bg-elevated-2: #1b2440;
+  --text: #eef0fa;
+  --text-muted: #8991b3;
+  --border: #26304d;
+  --accent: #e8793f;
+  --accent-ink: #1a0f08;
+  --accent-cool: #7dd3fc;
+  --focus-ring: #ffd166;
+  --shadow: 0 2px 10px rgba(2, 4, 12, 0.55);
+  --shadow-lift: 0 6px 20px rgba(2, 4, 12, 0.5);
+
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
   color-scheme: dark light;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #ffffff;
-    --bg-elevated: #f6f8fa;
-    --text: #1f2328;
-    --text-muted: #57606a;
-    --border: #d0d7de;
-    --accent: #0969da;
-    --accent-text: #ffffff;
+    --bg: #f6f3ec;
+    --bg-elevated: #ffffff;
+    --bg-elevated-2: #efe9db;
+    --text: #1a1d2b;
+    --text-muted: #5b6080;
+    --border: #ddd4bf;
+    --accent: #a8441a;
+    --accent-ink: #fff8f0;
+    --accent-cool: #0a6596;
+    --focus-ring: #8a5a00;
+    --shadow: 0 2px 10px rgba(60, 50, 30, 0.1);
+    --shadow-lift: 0 8px 24px rgba(60, 50, 30, 0.14);
   }
 }
 
@@ -28,10 +51,20 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
-  line-height: 1.5;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .visually-hidden {
@@ -47,9 +80,10 @@ body {
   left: -999px;
   top: 0;
   background: var(--accent);
-  color: var(--accent-text);
+  color: var(--accent-ink);
   padding: 0.5rem 1rem;
   z-index: 100;
+  font-weight: 600;
 }
 .skip-link:focus {
   left: 0;
@@ -68,12 +102,18 @@ button {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   color: var(--text);
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 0.5rem 0.9rem;
+  font-weight: 500;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
 }
 
 button:hover {
   border-color: var(--accent);
+}
+
+button:active {
+  transform: translateY(1px);
 }
 
 :focus-visible {
@@ -81,25 +121,38 @@ button:hover {
   outline-offset: 2px;
 }
 
+/* ---------------- Header ---------------- */
+
 .app-header {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1.5rem 1.25rem;
   border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg) 100%);
 }
 
-.app-header h1 {
-  margin: 0;
-  font-size: 1.4rem;
+.starfield {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
-.tagline {
-  margin: 0.2rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
+body.low-bandwidth .starfield {
+  display: none;
+}
+
+.app-header-left,
+.app-header-right {
+  position: relative;
+  z-index: 1;
 }
 
 .app-header-right {
@@ -107,50 +160,94 @@ button:hover {
   gap: 0.5rem;
 }
 
+.app-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: clamp(1.7rem, 1.1rem + 2vw, 2.3rem);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.tagline {
+  margin: 0.3rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  max-width: 42ch;
+}
+
 .toggle-btn[aria-pressed="true"] {
   background: var(--accent);
-  color: var(--accent-text);
+  color: var(--accent-ink);
+  border-color: var(--accent);
 }
+
+/* ---------------- Search ---------------- */
 
 .search-form {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
   align-items: center;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.search-form label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .search-form input[type="text"] {
   flex: 1 1 240px;
   min-width: 180px;
-  padding: 0.5rem 0.7rem;
+  padding: 0.55rem 0.8rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--bg);
   color: var(--text);
+  font-family: var(--font-mono);
 }
 
 .search-form input[type="number"],
 .search-form select {
   padding: 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--bg);
   color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.search-form button[type="submit"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.search-form button[type="submit"]:hover {
+  filter: brightness(1.08);
 }
 
 #status-message {
   min-height: 1.4em;
-  padding: 0 1rem;
+  padding: 0 1.25rem;
   color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
 }
+
+/* ---------------- Layout ---------------- */
 
 .layout {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1.25rem;
 }
 
 @media (min-width: 900px) {
@@ -162,11 +259,22 @@ button:hover {
 .panel {
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 1.1rem;
   background: var(--bg-elevated);
+  box-shadow: var(--shadow);
   min-width: 0;
 }
 
+.panel h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin: 0 0 0.6rem;
+}
+
+/* The blink viewport reads as an instrument display: a dark bezel,
+   an inset ring, and a soft ambient glow -- restrained, not a gradient
+   hero, just enough to say "this is a screen you're looking into." */
 .blink-container {
   display: flex;
   justify-content: center;
@@ -174,6 +282,10 @@ button:hover {
   border-radius: 6px;
   overflow: hidden;
   min-height: 220px;
+  border: 1px solid var(--border);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 24px -8px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .blink-container.zoomed .blink-frame {
@@ -186,15 +298,20 @@ button:hover {
   width: 100%;
   height: auto;
   display: block;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.2s ease;
 }
 
 .player-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.6rem;
   align-items: center;
-  margin-top: 0.75rem;
+  margin-top: 0.85rem;
+  font-size: 0.92rem;
+}
+
+.player-controls input[type="range"] {
+  accent-color: var(--accent);
 }
 
 .aladin-container {
@@ -203,11 +320,28 @@ button:hover {
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 1rem;
+  border: 1px solid var(--border);
+}
+
+.aladin-unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
 }
 
 canvas {
   max-width: 100%;
 }
+
+/* ---------------- Metadata table ---------------- */
 
 .metadata-table {
   width: 100%;
@@ -216,6 +350,13 @@ canvas {
   margin-top: 1rem;
   font-size: 0.85rem;
   display: block;
+}
+
+.metadata-table caption {
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin-bottom: 0.4rem;
 }
 
 .metadata-table thead,
@@ -228,13 +369,49 @@ canvas {
 .metadata-table th,
 .metadata-table td {
   border: 1px solid var(--border);
-  padding: 0.35rem 0.5rem;
+  padding: 0.4rem 0.55rem;
   text-align: left;
 }
 
+.metadata-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.metadata-table td {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Epoch index reads as a small instrument badge -- a distinct semantic
+   accent (cool), never mixed with the main warm accent used for actions. */
+.metadata-table td:first-child {
+  font-weight: 600;
+  color: var(--accent-cool);
+}
+
+/* ---------------- Gallery ---------------- */
+
 .gallery-host {
-  padding: 1rem;
+  padding: 1.25rem;
   border-top: 1px solid var(--border);
+}
+
+.gallery-host > h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.4rem;
+}
+
+.gallery-host h3 {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
 }
 
 .gallery-grid {
@@ -251,21 +428,41 @@ canvas {
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
+  border-radius: 6px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gallery-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+.gallery-card strong {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
 }
 
 .gallery-category {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  color: var(--accent-cool);
+  font-weight: 600;
 }
 
+/* ---------------- Footer ---------------- */
+
 .app-footer {
-  padding: 1rem;
+  padding: 1.25rem;
   color: var(--text-muted);
   font-size: 0.85rem;
   border-top: 1px solid var(--border);
 }
+
+/* ---------------- Dialogs ---------------- */
 
 dialog {
   border: 1px solid var(--border);
@@ -273,16 +470,42 @@ dialog {
   background: var(--bg-elevated);
   color: var(--text);
   max-width: 500px;
-  padding: 1.25rem;
+  padding: 1.4rem;
+  box-shadow: var(--shadow-lift);
+}
+
+dialog h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin-top: 0;
 }
 
 dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(5, 7, 14, 0.6);
+  backdrop-filter: blur(3px);
+}
+
+@media (prefers-color-scheme: light) {
+  dialog::backdrop {
+    background: rgba(40, 35, 25, 0.35);
+  }
 }
 
 #embed-code {
   width: 100%;
+  font-family: var(--font-mono);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
 }
+
+#tutorial-content p {
+  max-width: 65ch;
+}
+
+/* ---------------- Low bandwidth mode ---------------- */
 
 body.low-bandwidth .aladin-container {
   height: 200px;
@@ -290,4 +513,8 @@ body.low-bandwidth .aladin-container {
 
 body.low-bandwidth .blink-frame {
   image-rendering: pixelated;
+}
+
+body.low-bandwidth .blink-container {
+  box-shadow: none;
 }

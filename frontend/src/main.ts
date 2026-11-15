@@ -1,7 +1,18 @@
 // AI-assisted: written with Claude Code (Anthropic) under the team's
 // direction; concept, requirements, and design decisions are the team's
 // own. See DECISIONS.md and README.md ("AI assistance") for details.
+// Fraunces: display face, used sparingly (title + section heads).
+import "@fontsource/fraunces/600.css";
+import "@fontsource/fraunces/600-italic.css";
+// IBM Plex Sans: UI/body text.
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/500.css";
+import "@fontsource/ibm-plex-sans/600.css";
+// IBM Plex Mono: coordinates, dates, wavelengths -- anywhere digits align.
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
 import "./style.css";
+import { initStarfield } from "./components/starfield";
 import { ApiError, getFrames, getLightCurve, getSpectrum, getTargets, resolveName, frameUrl } from "./api";
 import { parseRaDeg, parseDecDeg } from "./coords";
 import type { TargetInfo } from "./api";
@@ -247,6 +258,9 @@ async function init(): Promise<void> {
   wireEmbedDialog();
   wireTutorial();
   void loadGallery();
+  // Purely decorative ambient backdrop -- skip it in low-bandwidth mode,
+  // same philosophy as skipping the Aladin sky view there.
+  if (!state.lowBandwidth) initStarfield(el<HTMLCanvasElement>("starfield"));
 
   const initialRa = state.ra ? parseRaDeg(state.ra) : null;
   const initialDec = state.dec ? parseDecDeg(state.dec) : null;
