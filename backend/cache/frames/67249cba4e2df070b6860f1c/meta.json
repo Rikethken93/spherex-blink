@@ -35,7 +35,8 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": true
     },
     {
       "mjd_min": 60916.37050831,
@@ -58,14 +59,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": true
     },
     {
       "mjd_min": 61079.481883009,
       "mjd_max": 61183.494981852,
-      "mjd_mean": 61124.390627601715,
-      "n_exposures": 957,
-      "flag_fraction": 0.16783945969371664,
+      "mjd_mean": 61124.48129828488,
+      "n_exposures": 965,
+      "flag_fraction": 0.16774800197336232,
       "detectors": [
         3,
         6
@@ -73,14 +75,15 @@
       "wavelengths_um": [
         2.032,
         4.711
-      ]
+      ],
+      "saturated_core": true
     },
     {
       "mjd_min": 61198.973129954,
       "mjd_max": 61310.29117515,
       "mjd_mean": 61268.88157687889,
       "n_exposures": 843,
-      "flag_fraction": 0.19989106562405895,
+      "flag_fraction": 0.1998910656240589,
       "detectors": [
         1,
         2,
@@ -96,9 +99,10 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": true
     }
   ],
-  "n_exposures_total": 2527,
+  "n_exposures_total": 2535,
   "cache_hit": false
 }

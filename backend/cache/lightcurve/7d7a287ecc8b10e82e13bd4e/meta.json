@@ -18,13 +18,13 @@
     "flag_fraction": 0.18101008188073053
   },
   {
-    "mjd": 61124.39062760171,
+    "mjd": 61124.48129828488,
     "mjd_min": 61079.481883009,
     "mjd_max": 61183.494981852,
     "flux": null,
     "error": null,
-    "n_exposures": 957,
-    "flag_fraction": 0.16783945969371664
+    "n_exposures": 965,
+    "flag_fraction": 0.16774800197336232
   },
   {
     "mjd": 61268.881576878885,
@@ -33,6 +33,6 @@
     "flux": null,
     "error": null,
     "n_exposures": 843,
-    "flag_fraction": 0.19989106562405895
+    "flag_fraction": 0.1998910656240589
   }
 ]
