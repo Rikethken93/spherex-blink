@@ -296,5 +296,18 @@ format: **Decision** — Alternatives considered — Reason.
   groupings for no reason, and would require re-fetching all of them
   again to verify).
 
+- **Fly.io chosen as the actual deploy target over Google Cloud Run/Azure,
+  with `backend/fly.toml` committed and `flyctl` installed.** — Reason:
+  the team had already used their NASA Space Apps Google Cloud and
+  Microsoft Azure credits on other projects and wasn't eligible for more,
+  and neither this sandbox nor the team had gcloud/az/aws CLIs or
+  credentials configured locally (checked directly: no `gcloud`, `az`, or
+  `aws` binaries, no `~/.config/gcloud`, `~/.azure`, or `~/.aws`, no
+  related environment variables). Fly.io's free tier needs no credit card
+  and no pre-existing account, so it was the lowest-friction path to an
+  actually-live deployment. Cloud Run and Azure instructions stay in the
+  README as documented alternatives (the Dockerfile is portable to any of
+  them unchanged) in case the team's credit situation changes later.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)

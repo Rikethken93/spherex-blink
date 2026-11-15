@@ -167,9 +167,20 @@ python ../scripts/precache.py --targets barnards-star,proxima-centauri --modes b
   Render/Fly.io-style host that runs a Dockerfile works — expose port
   `8000`, mount or bake in `backend/cache/` for the pre-cached demo
   targets).
-  - **Render/Fly.io**: point either at `backend/Dockerfile`; both auto-detect
-    and build it. Set `SPHEREX_BLINK_CACHE_DIR` only if you want the cache
-    outside the image (otherwise the committed `backend/cache/` bakes in).
+  - **Render**: point it at `backend/Dockerfile`; it auto-detects and builds it.
+    Set `SPHEREX_BLINK_CACHE_DIR` only if you want the cache outside the image
+    (otherwise the committed `backend/cache/` bakes in).
+  - **Fly.io** (no credit card needed for the free tier): `backend/fly.toml` is
+    already configured (app name, port 8000, health check on `/api/health`) —
+    ```bash
+    curl -L https://fly.io/install.sh | sh   # installs flyctl, one time
+    fly auth login                            # opens a browser to sign in
+    cd backend
+    fly launch --no-deploy                    # first time only: creates/claims the app
+    fly deploy                                 # builds backend/Dockerfile and ships it
+    ```
+    `fly launch` will ask to confirm the app name/region from `fly.toml`; say
+    yes to reuse what's there. Re-run `fly deploy` for every subsequent update.
   - **Google Cloud Run**: builds from the same Dockerfile, no changes needed —
     ```bash
     cd backend

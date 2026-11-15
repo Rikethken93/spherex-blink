@@ -178,8 +178,18 @@ python ../scripts/precache.py --targets barnards-star,proxima-centauri --modes b
   (cualquier host al estilo Render/Fly.io que ejecute un Dockerfile
   funciona — expone el puerto `8000`, monta o incluye `backend/cache/`
   para los objetivos de demostración precargados).
-  - **Render/Fly.io**: apunta a `backend/Dockerfile`; ambos lo detectan y
-    construyen automáticamente.
+  - **Render**: apunta a `backend/Dockerfile`; lo detecta y construye
+    automáticamente.
+  - **Fly.io** (sin tarjeta de crédito en el nivel gratuito): `backend/fly.toml`
+    ya está configurado (nombre de la app, puerto 8000, chequeo de salud en
+    `/api/health`) —
+    ```bash
+    curl -L https://fly.io/install.sh | sh   # instala flyctl, una sola vez
+    fly auth login                            # abre el navegador para iniciar sesión
+    cd backend
+    fly launch --no-deploy                    # solo la primera vez: crea/reclama la app
+    fly deploy                                 # construye backend/Dockerfile y lo despliega
+    ```
   - **Google Cloud Run**: construye desde el mismo Dockerfile, sin cambios —
     ```bash
     cd backend

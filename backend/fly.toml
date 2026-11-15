@@ -1,0 +1,27 @@
+# Fly.io app config for the SPHEREx Blink backend.
+# Deploy with: flyctl launch (first time) or flyctl deploy (subsequent),
+# run from the backend/ directory. Requires `flyctl auth login` first --
+# see README.md "Deployment" for the full walkthrough.
+app = "spherex-blink-backend"
+primary_region = "mia"  # Miami -- lowest latency to Barranquilla, Colombia
+
+[build]
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/api/health"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
