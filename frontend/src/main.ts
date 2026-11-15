@@ -50,6 +50,16 @@ const player = new BlinkPlayer(blinkContainer, {
   onImageClick: (fracX, fracY) => void handleImageClick(fracX, fracY),
 });
 
+// Attach the CSS filter only while it actually does something -- see
+// .blink-container.contrasted in style.css for why a no-op filter still
+// costs sharpness.
+function applyDisplayFilters(): void {
+  const active = state.contrast !== 1 || state.brightness !== 1;
+  blinkContainer.classList.toggle("contrasted", active);
+  blinkContainer.style.setProperty("--frame-contrast", String(state.contrast));
+  blinkContainer.style.setProperty("--frame-brightness", String(state.brightness));
+}
+
 async function handleImageClick(fracX: number, fracY: number): Promise<void> {
   if (!currentCenter) return;
   const { ra, dec, fov } = currentCenter;
@@ -252,13 +262,13 @@ function wirePlayerControls(): void {
     writeStateToUrl(state);
   });
   el<HTMLInputElement>("player-contrast").addEventListener("input", (e) => {
-    const value = (e.target as HTMLInputElement).value;
-    state.contrast = Number(value) || 1;
-    // Only attach the CSS filter while it actually does something -- see
-    // .blink-container.contrasted in style.css for why a no-op filter
-    // still costs sharpness.
-    blinkContainer.classList.toggle("contrasted", value !== "1");
-    blinkContainer.style.setProperty("--frame-contrast", value);
+    state.contrast = Number((e.target as HTMLInputElement).value) || 1;
+    applyDisplayFilters();
+    writeStateToUrl(state);
+  });
+  el<HTMLInputElement>("player-brightness").addEventListener("input", (e) => {
+    state.brightness = Number((e.target as HTMLInputElement).value) || 1;
+    applyDisplayFilters();
     writeStateToUrl(state);
   });
   el<HTMLInputElement>("player-j2000").addEventListener("change", (e) => {
@@ -373,11 +383,9 @@ async function init(): Promise<void> {
     el<HTMLInputElement>("player-smooth").checked = true;
     blinkContainer.classList.add("smooth");
   }
-  if (state.contrast !== 1) {
-    el<HTMLInputElement>("player-contrast").value = String(state.contrast);
-    blinkContainer.classList.add("contrasted");
-    blinkContainer.style.setProperty("--frame-contrast", String(state.contrast));
-  }
+  el<HTMLInputElement>("player-contrast").value = String(state.contrast);
+  el<HTMLInputElement>("player-brightness").value = String(state.brightness);
+  applyDisplayFilters();
   if (state.lowBandwidth) {
     document.body.classList.add("low-bandwidth");
     el<HTMLButtonElement>("lowbw-toggle").setAttribute("aria-pressed", "true");

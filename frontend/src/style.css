@@ -321,13 +321,16 @@ body.low-bandwidth .starfield {
   transition: transform 0.15s ease, opacity 0.2s ease;
 }
 
-/* Contrast is applied ONLY while the slider is away from 1: a CSS filter
-   -- even a no-op contrast(1) -- forces the image into its own composited
-   layer, where engines may re-rasterize it and soften the pixelated
-   rendering. No slider movement, no filter, no risk. The adjustment is
-   purely client-side; cached PNGs are untouched. */
+/* Contrast/brightness are applied ONLY while a slider is away from 1: a
+   CSS filter -- even a no-op contrast(1) -- forces the image into its own
+   composited layer, where engines may re-rasterize it and soften the
+   pixelated rendering. No slider movement, no filter, no risk. The
+   adjustment is purely client-side; cached PNGs are untouched.
+   Brightness exists to recover the dense, luminous look of the original
+   ZScale stretch on demand: it lifts the faint sources the honest
+   percentile stretch leaves in dark grey. */
 .blink-container.contrasted .blink-frame {
-  filter: contrast(var(--frame-contrast, 1));
+  filter: brightness(var(--frame-brightness, 1)) contrast(var(--frame-contrast, 1));
 }
 
 /* Dim marker showing where the target sat at epoch J2000.0 -- the gap to

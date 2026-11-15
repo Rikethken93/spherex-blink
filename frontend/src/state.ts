@@ -10,6 +10,7 @@ export interface AppState {
   // honest-pixels / neutral.
   smooth: boolean;
   contrast: number;
+  brightness: number;
 }
 
 const DEFAULTS: AppState = {
@@ -28,6 +29,7 @@ const DEFAULTS: AppState = {
   lowBandwidth: false,
   smooth: false,
   contrast: 1,
+  brightness: 1,
 };
 
 function clampContrast(value: number): number {
@@ -46,6 +48,7 @@ export function readStateFromUrl(): AppState {
     lowBandwidth: params.get("lowbw") === "1",
     smooth: params.get("smooth") === "1",
     contrast: params.has("contrast") ? clampContrast(Number(params.get("contrast"))) : DEFAULTS.contrast,
+    brightness: params.has("bright") ? clampContrast(Number(params.get("bright"))) : DEFAULTS.brightness,
   };
 }
 
@@ -59,6 +62,7 @@ export function writeStateToUrl(state: AppState, replace = true): void {
   if (state.lowBandwidth) params.set("lowbw", "1");
   if (state.smooth) params.set("smooth", "1");
   if (state.contrast !== 1) params.set("contrast", String(state.contrast));
+  if (state.brightness !== 1) params.set("bright", String(state.brightness));
   const url = `${window.location.pathname}?${params.toString()}`;
   if (replace) window.history.replaceState(null, "", url);
   else window.history.pushState(null, "", url);
@@ -73,6 +77,7 @@ export function shareUrl(state: AppState): string {
   params.set("lang", state.lang);
   if (state.smooth) params.set("smooth", "1");
   if (state.contrast !== 1) params.set("contrast", String(state.contrast));
+  if (state.brightness !== 1) params.set("bright", String(state.brightness));
   return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 }
 

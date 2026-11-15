@@ -760,3 +760,13 @@ decisions, appended as each milestone lands.)
   link that opens with the soft look while the app's own default stays
   honest-pixels. Verified live: the parameterized URL opens with
   image-rendering:auto, contrast(1.4), both controls reflecting it.
+
+- Brightness slider added next to Contrast (user kept preferring the
+  original ZScale look, 2026-11-15 evening): the first build's "rich"
+  appearance came from ZScale lifting faint sources (and noise) into
+  view. Rather than reverting the scientifically-honest percentile
+  stretch baked into the cached PNGs, a client-side brightness filter
+  (same composited-layer guard as contrast, URL-persisted as &bright=)
+  recovers that dense luminous look on demand -- smooth=1&contrast=1.2&
+  bright=1.9 closely reproduces the v1 aesthetic on Proxima with the
+  star correctly centred. Defaults remain honest (no filter, pixelated).
