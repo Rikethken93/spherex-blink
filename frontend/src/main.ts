@@ -92,7 +92,7 @@ async function loadAndShow(raDeg: number, decDeg: number, fovArcmin: number, mod
   try {
     const result = await getFrames(raDeg, decDeg, fovArcmin, mode);
     stopLoading();
-    player.setFrames(result.frame_urls.map(frameUrl));
+    player.setFrames(result.frame_urls.map(frameUrl), fovArcmin);
     renderMetadataTable(metadataHost, result.epochs);
     setStatus(
       `${result.n_exposures_total} exposures -> ${result.epochs.length} epoch(s)` +
@@ -190,6 +190,9 @@ function wirePlayerControls(): void {
   });
   el<HTMLInputElement>("player-zoom").addEventListener("change", (e) => {
     blinkContainer.classList.toggle("zoomed", (e.target as HTMLInputElement).checked);
+  });
+  el<HTMLInputElement>("player-smooth").addEventListener("change", (e) => {
+    blinkContainer.classList.toggle("smooth", (e.target as HTMLInputElement).checked);
   });
 
   blinkContainer.addEventListener("keydown", (e) => {

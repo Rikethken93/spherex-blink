@@ -536,5 +536,52 @@ format: **Decision** — Alternatives considered — Reason.
     barnards-star,epsilon-indi-b,wise0855,rw-aurigae,proxima-centauri,
     luhman-16,ugps0722 --modes rgb`).
 
+- Follow-up to the crosshair/upsampling fix: the viewer could still read
+  as soft because CSS `width:100%` stretches the backend's own (already
+  integer-upscaled) PNG to whatever width a responsive container happens
+  to be -- essentially never an exact multiple of the PNG's own pixel
+  grid, which reintroduces a non-integer scale even with
+  `image-rendering: pixelated` set. Fixed end to end:
+  1. `frontend/src/components/player.ts` now measures the loaded image's
+     natural size on every frame swap and sets an explicit pixel width/
+     height equal to the nearest whole multiple of that size (capped at
+     `MAX_DISPLAY_PX = 640` so it can't blow up on a wide screen), instead
+     of leaving it to CSS. Re-applied on window resize.
+  2. `image-rendering: crisp-edges` added ahead of the existing
+     `pixelated` as a fallback for engines that only recognize the older
+     keyword (the later declaration wins where both are supported).
+  3. A "Smooth" checkbox (default off, same opt-in posture as the
+     existing Zoom checkbox) lets anyone who prefers the browser's
+     interpolated look opt into `image-rendering: auto` instead.
+  4. A small scale bar ("1′", or "30″" below ~20px/arcmin so it stays
+     legible at a tight FOV) and a one-line note ("Each square is one
+     SPHEREx pixel (~6″)...") in EN/ES make the real pixel scale explicit
+     rather than leaving a viewer to guess whether the blockiness is a
+     bug.
+  5. The app's default field of view moved from 3' to 6'
+     (`backend/app/config.py FOV_DEFAULT_ARCMIN`, `frontend/src/
+     state.ts`, `index.html`'s fov input) -- 3' was only ~29 native
+     SPHEREx pixels across; 6' (~58) gives meaningfully more context
+     around a target without losing visible proper motion for this app's
+     demo targets. `scripts/precache.py` gained a `--fov` flag (default
+     now matching the app's 6') instead of a hardcoded constant.
+  The crosshair (baked into the PNG, see the earlier fix) and the Gaia
+  proper-motion arrow (a separate Aladin sky-view overlay, unaffected by
+  blink-image CSS) both stay correctly aligned -- verified visually at
+  both FOVs.
+  - Re-precached 6 of 8 targets at fov=6 (blink/sum/difference) during a
+    window where IRSA recovered; `ugps0722` and `r-draconis` still need a
+    fov=6 precache run once IRSA's SIA capabilities endpoint (still
+    flapping between `200` and `502` today) stays up long enough -- until
+    then, searching those two at the new 6' default falls through to a
+    live fetch rather than an instant cache hit, same honest tradeoff as
+    every other uncached-position case in this app.
+  - Verified live with Playwright at both 3' and 6' on WISE 0855-0714 and
+    Barnard's Star (screenshots): integer display/natural-size ratio
+    is exactly 1 in all four cases (no residual non-integer stretch), the
+    scale bar correctly halves in on-screen length from 3' to 6' (same
+    display width now spans twice the sky), and the Smooth checkbox
+    correctly flips `image-rendering` from `pixelated` to `auto` and back.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)

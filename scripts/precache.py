@@ -30,10 +30,12 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 logger = logging.getLogger("precache")
 
 DEFAULT_MODES = ["blink", "sum", "difference"]
-DEFAULT_FOV_ARCMIN = 3.0
+# Matches app.config.FOV_DEFAULT_ARCMIN -- the app's own default field of
+# view, so the gallery's default search-by-name path is always a cache hit.
+DEFAULT_FOV_ARCMIN = 6.0
 
 
-def precache_target(key: str, modes: list[str], epoch_gap_days: float | None = None) -> bool:
+def precache_target(key: str, modes: list[str], fov_arcmin: float = DEFAULT_FOV_ARCMIN, epoch_gap_days: float | None = None) -> bool:
     target = TARGETS_BY_KEY[key]
     logger.info("=== %s (%s) ===", key, target.display_name["en"])
 
@@ -56,7 +58,7 @@ def precache_target(key: str, modes: list[str], epoch_gap_days: float | None = N
         # One fetch, shared across every mode plus spectrum and light curve
         # -- avoids paying for a separate full IRSA fetch per product.
         result = service.precache_all(
-            resolved.ra_deg, resolved.dec_deg, DEFAULT_FOV_ARCMIN, modes, epoch_gap_days=epoch_gap_days
+            resolved.ra_deg, resolved.dec_deg, fov_arcmin, modes, epoch_gap_days=epoch_gap_days
         )
         logger.info(
             "  exposures=%d epochs=%d spectrum=%d points lightcurve=%d points",
@@ -83,6 +85,11 @@ def main() -> int:
     parser.add_argument("--targets", default=None, help="Comma-separated target keys (default: all)")
     parser.add_argument("--modes", default=",".join(DEFAULT_MODES), help="Comma-separated frame modes")
     parser.add_argument(
+        "--fov", type=float, default=DEFAULT_FOV_ARCMIN,
+        help=f"Field of view in arcmin to precache (default: {DEFAULT_FOV_ARCMIN}, matching "
+        "the app's own default)",
+    )
+    parser.add_argument(
         "--epoch-gap-days", type=float, default=None,
         help="Override config.EPOCH_GAP_DAYS for this run (e.g. for a near-ecliptic-pole "
         "target like R Draconis, where dense SPHEREx revisits mean the default 60-day gap "
@@ -96,10 +103,13 @@ def main() -> int:
     logger.info("Cache dir: %s", config.CACHE_DIR)
     logger.info("Targets: %s", keys)
     logger.info("Modes: %s", modes)
+    logger.info("FOV: %s arcmin", args.fov)
     if args.epoch_gap_days is not None:
         logger.info("Epoch gap override: %s days", args.epoch_gap_days)
 
-    results = {key: precache_target(key, modes, epoch_gap_days=args.epoch_gap_days) for key in keys}
+    results = {
+        key: precache_target(key, modes, fov_arcmin=args.fov, epoch_gap_days=args.epoch_gap_days) for key in keys
+    }
 
     print("\n=== Precache summary ===")
     for key, ok in results.items():

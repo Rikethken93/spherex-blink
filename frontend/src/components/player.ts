@@ -5,6 +5,17 @@ export interface PlayerCallbacks {
   onImageClick?: (fracX: number, fracY: number) => void;
 }
 
+// SPHEREx's native pixel scale is ~6.2"/pixel, and the backend already
+// upscales its PNGs by a clean integer factor (see render.py) before this
+// ever reaches a browser. The one remaining place a *non*-integer scale
+// could sneak back in was here: a plain CSS width:100% stretches the
+// image to whatever the responsive container happens to be, which is
+// essentially never an exact multiple of the PNG's own pixel grid. Sizing
+// explicitly to the nearest whole multiple (capped so it can't blow up on
+// a wide screen) keeps every SPHEREx pixel a crisp, perfectly square block
+// end to end, not just inside the PNG.
+const MAX_DISPLAY_PX = 640;
+
 export class BlinkPlayer {
   private frames: string[] = [];
   private index = 0;
@@ -13,11 +24,17 @@ export class BlinkPlayer {
   private rockMode = false;
   private loop = true;
   private fps = 2;
+  private fovArcmin = 3;
   private timer: number | null = null;
+  private container: HTMLElement;
   private img: HTMLImageElement;
+  private scaleBar: HTMLDivElement;
+  private scaleBarTrack: HTMLDivElement;
+  private scaleBarLabel: HTMLSpanElement;
   private callbacks: PlayerCallbacks;
 
   constructor(container: HTMLElement, callbacks: PlayerCallbacks = {}) {
+    this.container = container;
     this.callbacks = callbacks;
     this.img = document.createElement("img");
     this.img.className = "blink-frame";
@@ -29,12 +46,33 @@ export class BlinkPlayer {
       const fracY = (e.clientY - rect.top) / rect.height;
       this.callbacks.onImageClick?.(fracX, fracY);
     });
+    this.img.addEventListener("load", () => {
+      this.applyIntegerScale();
+      this.updateScaleBar();
+    });
     container.appendChild(this.img);
+
+    this.scaleBar = document.createElement("div");
+    this.scaleBar.className = "scale-bar";
+    this.scaleBar.setAttribute("aria-hidden", "true");
+    this.scaleBarTrack = document.createElement("div");
+    this.scaleBarTrack.className = "scale-bar-track";
+    this.scaleBarLabel = document.createElement("span");
+    this.scaleBar.appendChild(this.scaleBarTrack);
+    this.scaleBar.appendChild(this.scaleBarLabel);
+    container.appendChild(this.scaleBar);
+
+    let resizeTimer: number | null = null;
+    window.addEventListener("resize", () => {
+      if (resizeTimer !== null) window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => this.applyIntegerScale(), 150);
+    });
   }
 
-  setFrames(urls: string[]): void {
+  setFrames(urls: string[], fovArcmin?: number): void {
     this.stop();
     this.frames = urls;
+    if (fovArcmin !== undefined) this.fovArcmin = fovArcmin;
     this.index = 0;
     this.render();
   }
@@ -122,9 +160,39 @@ export class BlinkPlayer {
   private render(): void {
     if (this.frames.length === 0) {
       this.img.removeAttribute("src");
+      this.scaleBar.style.display = "none";
       return;
     }
     this.img.src = this.frames[this.index];
     this.callbacks.onFrameChange?.(this.index);
+  }
+
+  // Snaps the displayed width/height to the nearest whole multiple of the
+  // image's own (already integer-upscaled) pixel grid, capped at
+  // MAX_DISPLAY_PX -- see the module comment above.
+  private applyIntegerScale(): void {
+    const nw = this.img.naturalWidth;
+    const nh = this.img.naturalHeight;
+    if (!nw || !nh) return;
+    const available = Math.min(this.container.clientWidth || nw, MAX_DISPLAY_PX);
+    const k = Math.max(1, Math.floor(available / nw));
+    this.img.style.width = `${nw * k}px`;
+    this.img.style.height = `${nh * k}px`;
+  }
+
+  private updateScaleBar(): void {
+    const displayedWidth = this.img.getBoundingClientRect().width;
+    if (!displayedWidth || !this.fovArcmin) {
+      this.scaleBar.style.display = "none";
+      return;
+    }
+    const pxPerArcmin = displayedWidth / this.fovArcmin;
+    // Below ~20px a 1' bar reads as a stray tick, not a scale reference --
+    // show "30"" (half an arcmin) instead so it stays legible at a tight FOV.
+    const arcminSpan = pxPerArcmin >= 20 ? 1 : 0.5;
+    const label = arcminSpan === 1 ? "1′" : "30″";
+    this.scaleBarTrack.style.width = `${pxPerArcmin * arcminSpan}px`;
+    this.scaleBarLabel.textContent = label;
+    this.scaleBar.style.display = "flex";
   }
 }

@@ -10,7 +10,11 @@ export interface AppState {
 const DEFAULTS: AppState = {
   ra: "",
   dec: "",
-  fov: 3,
+  // Matches backend/app/config.py's FOV_DEFAULT_ARCMIN -- SPHEREx's native
+  // pixel scale is ~6.2"/pixel, so 3' was only ~29 native pixels across;
+  // 6' gives meaningfully more context around a target without losing
+  // visible proper motion for this app's demo targets.
+  fov: 6,
   mode: "blink",
   // English-first by default (judges should never land on Spanish by
   // accident because of their browser's locale setting) -- Spanish is a

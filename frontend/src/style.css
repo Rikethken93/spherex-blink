@@ -276,6 +276,7 @@ body.low-bandwidth .starfield {
    an inset ring, and a soft ambient glow -- restrained, not a gradient
    hero, just enough to say "this is a screen you're looking into." */
 .blink-container {
+  position: relative;
   display: flex;
   justify-content: center;
   background: #000;
@@ -299,14 +300,64 @@ body.low-bandwidth .starfield {
    instrument's actual native data. Crisp nearest-neighbor scaling shows
    the real pixels honestly (and reads as "instrument display", matching
    the bezel/glow treatment on .blink-container) instead of pretending to
-   a smoothness the data doesn't have. */
+   a smoothness the data doesn't have. `crisp-edges` is listed first as a
+   fallback for engines that don't recognize `pixelated`; where both are
+   understood, the later declaration (`pixelated`) wins. JS
+   (components/player.ts) additionally sizes the image to a whole-number
+   multiple of its own pixel grid, so no non-integer browser scaling ever
+   sneaks back in between the two. */
 .blink-frame {
   max-width: 100%;
   width: 100%;
   height: auto;
   display: block;
+  image-rendering: crisp-edges;
   image-rendering: pixelated;
   transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+/* Smooth is an explicit opt-in (see the Smooth checkbox) for anyone who
+   prefers the browser's interpolated look over the honest blocky pixels --
+   off by default, same as Zoom. */
+.blink-container.smooth .blink-frame {
+  image-rendering: auto;
+}
+
+.scale-bar {
+  display: none;
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.65rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  pointer-events: none;
+}
+
+/* Width is set from JS (components/player.ts) to the exact measured
+   pixel span of 1' (or 30" at a tight FOV) on the *currently displayed*
+   image -- a separate element from the label below so the label's own
+   text width never fights the line's deliberately precise width. */
+.scale-bar-track {
+  height: 2px;
+  min-width: 10px;
+  background: var(--accent-cool);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.scale-bar span {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-cool);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.pixel-note {
+  margin: 0.6rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  max-width: 60ch;
 }
 
 .player-controls {

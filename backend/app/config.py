@@ -102,7 +102,12 @@ GAIA_BRIGHTNESS_MARGIN_MAG = 5.0
 # --- Field of view / validation ---------------------------------------------
 FOV_MIN_ARCMIN = 1.0
 FOV_MAX_ARCMIN = 15.0
-FOV_DEFAULT_ARCMIN = 3.0
+# SPHEREx's native pixel scale is ~6.2"/pixel, so 3' was only ~29 native
+# pixels across -- enough context to be genuinely tight around a target but
+# not much margin to see a mover's motion land inside the frame, or to read
+# the field around it. 6' (~58 native pixels) gives meaningfully more
+# context and still keeps even modest proper motions comfortably visible.
+FOV_DEFAULT_ARCMIN = 6.0
 
 # --- Networking (IRSA/Gaia/Simbad are observed to be occasionally flaky --
 # a live probe during development hit seven consecutive 502s from the SIA
