@@ -64,8 +64,8 @@
   "metadata.notes": "Notes",
   "metadata.saturated_core": "Saturated core",
   "note.fov_fallback": "Showing the cached {fov}′ field (the requested field of view isn't precached for this mode)",
-  "aladin.static_note": "Static sky image (CDS hips2fits, 2MASS) — interactive sky view unavailable right now; the cross marks the target.",
-  "aladin.static_alt": "Static sky image of the searched field (2MASS)",
+  "aladin.static_note": "Static sky image (NASA SkyView, DSS2) — interactive sky view unavailable right now; the cross marks the target.",
+  "aladin.static_alt": "Static sky image of the searched field (NASA SkyView, DSS2)",
   "player.single_frame_hint": "This mode produces a single image — switch Mode to “Blink” to animate between epochs.",
   "player.brightness": "Brightness"
 }

@@ -23,24 +23,29 @@ let aladinInstance: any = null;
 let pmOverlay: any = null;
 let staticHost: HTMLElement | null = null;
 
-const STATIC_HIPS = "CDS/P/2MASS/color";
+// HiPS tiles come from IRSA's NASA-hosted mirror of the 2MASS color
+// survey, not from CDS: the CDS data services (alasky tile servers AND
+// the hips2fits image service) were observed fully down on 2026-11-15 --
+// every HiPS "properties" endpoint 404 -- which left the interactive
+// panel stuck on "loading..." forever. IRSA hosting also fits this
+// NASA-challenge app: sky context imagery served by the same archive the
+// SPHEREx data comes from. 2MASS is near-IR, the right comparison for
+// SPHEREx's wavelength range.
+const SURVEY_HIPS_URL = "https://irsa.ipac.caltech.edu/data/hips/CDS/2MASS/Color";
 
-function hips2fitsUrl(raDeg: number, decDeg: number, fovDeg: number): string {
+function skyviewUrl(raDeg: number, decDeg: number, fovDeg: number): string {
   const params = new URLSearchParams({
-    hips: STATIC_HIPS,
-    ra: String(raDeg),
-    dec: String(decDeg),
-    fov: String(Math.max(fovDeg * 2, 0.05)),
-    width: "420",
-    height: "420",
-    projection: "TAN",
-    format: "jpg",
+    Survey: "DSS2 Red",
+    Position: `${raDeg},${decDeg}`,
+    Size: String(Math.max(fovDeg * 2, 0.05)),
+    Pixels: "420",
+    Return: "JPEG",
   });
-  return `https://alasky.cds.unistra.fr/hips-image-services/hips2fits?${params.toString()}`;
+  return `https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl?${params.toString()}`;
 }
 
-/** Static single-image fallback: same field via CDS hips2fits (2MASS
- * color), with a CSS crosshair marking the target. */
+/** Static single-image fallback: same field via NASA SkyView (DSS2 Red),
+ * with a CSS crosshair marking the target. */
 function showStaticSkyView(container: HTMLElement, raDeg: number, decDeg: number, fovDeg: number): void {
   staticHost = container;
   container.classList.remove("aladin-unavailable");
@@ -49,7 +54,7 @@ function showStaticSkyView(container: HTMLElement, raDeg: number, decDeg: number
   wrap.className = "static-sky";
   const img = document.createElement("img");
   img.alt = t("aladin.static_alt");
-  img.src = hips2fitsUrl(raDeg, decDeg, fovDeg);
+  img.src = skyviewUrl(raDeg, decDeg, fovDeg);
   img.addEventListener("error", () => {
     container.textContent = t("aladin.unavailable");
     container.classList.add("aladin-unavailable");
@@ -93,6 +98,7 @@ async function initAladinOrThrow(containerId: string, raDeg: number, decDeg: num
   aladinInstance = A.aladin(`#${containerId}`, {
     target: `${raDeg} ${decDeg}`,
     fov: fovDeg,
+    survey: SURVEY_HIPS_URL,
     cooFrame: "ICRSd",
     showCooGrid: false,
     showReticle: true,
@@ -138,7 +144,7 @@ export function recenter(raDeg: number, decDeg: number, fovDeg: number): void {
   }
   if (staticHost) {
     const img = staticHost.querySelector<HTMLImageElement>(".static-sky img");
-    if (img) img.src = hips2fitsUrl(raDeg, decDeg, fovDeg);
+    if (img) img.src = skyviewUrl(raDeg, decDeg, fovDeg);
   }
 }
 

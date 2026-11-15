@@ -770,3 +770,18 @@ decisions, appended as each milestone lands.)
   recovers that dense luminous look on demand -- smooth=1&contrast=1.2&
   bright=1.9 closely reproduces the v1 aesthetic on Proxima with the
   star correctly centred. Defaults remain honest (no filter, pixelated).
+
+- Sky-view tiles moved off CDS entirely (user report "no muestra el
+  cielo", 2026-11-15 evening): the CDS outage turned out to cover the
+  tile servers and hips2fits too (every alasky.cds.unistra.fr HiPS
+  "properties" endpoint and a live hips2fits query all returned 404),
+  so the bundled Aladin initialized but hung on "P/DSS2/color
+  loading..." forever. The interactive view now loads the 2MASS color
+  HiPS from IRSA's NASA-hosted mirror (probed 200 live; also the right
+  wavelength context for an infrared mission, and pleasingly the same
+  archive the SPHEREx data comes from), and the static fallback image
+  now comes from NASA SkyView (DSS2 Red; probed live, real JPEG) instead
+  of CDS hips2fits. Verified on production: the Proxima field renders
+  dense 2MASS color imagery with the reticle on target. VizieR catalog
+  overlays (Gaia/AllWISE dots) still depend on CDS and will reappear
+  when it recovers -- they are wrapped in try/catch and degrade quietly.
