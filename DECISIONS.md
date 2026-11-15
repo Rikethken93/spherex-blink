@@ -309,5 +309,16 @@ format: **Decision** — Alternatives considered — Reason.
   README as documented alternatives (the Dockerfile is portable to any of
   them unchanged) in case the team's credit situation changes later.
 
+- **Actually deployed, not just documented.** Backend: Fly.io
+  (`https://spherex-blink-backend.fly.dev`), built straight from
+  `backend/Dockerfile` with `fly launch` + `fly deploy` once the team
+  authenticated. Frontend: Vercel
+  (`https://frontend-woad-nu-23.vercel.app`), built with
+  `VITE_API_BASE` pointed at the live Fly.io backend via `vercel deploy
+  --build-env`. Both verified live end-to-end (health check, a cached
+  frame's metadata, and the actual PNG bytes all confirmed over HTTPS)
+  before calling this done -- a submission with a dead or unverified
+  "live demo" link is worse than no link at all.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)

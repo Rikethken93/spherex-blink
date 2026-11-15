@@ -1,5 +1,9 @@
 # NASA Space Apps Challenge 2026 — "Planet X and SPHEREx" — Submission
 
+**Live demo:** https://frontend-woad-nu-23.vercel.app
+**Backend health check:** https://spherex-blink-backend.fly.dev/api/health
+**Repository:** see `README.md` for local run / build instructions.
+
 ## Project summary (~100 words)
 
 SPHEREx Blink turns NASA's SPHEREx all-sky infrared archive into a live

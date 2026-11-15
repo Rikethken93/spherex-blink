@@ -2,6 +2,9 @@
 
 **[Read in English](README.md)**
 
+**🔴 Demo en vivo: https://frontend-woad-nu-23.vercel.app** (backend:
+https://spherex-blink-backend.fly.dev/api/health)
+
 Construido para el [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.org/),
 desafío *"Planet X and SPHEREx"* (categoría avanzada). Equipo: 2 personas,
 Barranquilla, Colombia.

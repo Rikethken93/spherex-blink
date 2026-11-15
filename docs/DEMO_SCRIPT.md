@@ -13,7 +13,7 @@ for the written pitch — this file is the literal shot-by-shot script.
 | 0:05–0:10 | App home screen, logo/title visible, tagline on screen | "This is SPHEREx Blink — find moving and variable objects in NASA's newest all-sky infrared survey." | SPHEREx Blink: spot what moves, in NASA's newest infrared sky survey |
 | 0:10–0:20 | Live demo: type/select "WISE 0855-0714", blink animation plays, crosshair on the moving brown dwarf, click for spectrum | "Watch this brown dwarf jump between real SPHEREx epochs — and click it for a live, per-pixel spectrum." | LIVE: WISE 0855-0714, a real brown dwarf, blinking between real SPHEREx epochs |
 | 0:20–0:27 | Quick cuts: Explore gallery, Spanish toggle, low-bandwidth mode, embed button | "Bilingual, accessible, embeddable — built for classrooms and citizen scientists across Latin America." | Bilingual · accessible · low-bandwidth · embeddable |
-| 0:27–0:30 | Final card: project name, one-line URL / QR code | "SPHEREx Blink. Try it yourself." | Try it: [project URL] |
+| 0:27–0:30 | Final card: project name, one-line URL / QR code | "SPHEREx Blink. Try it yourself." | Try it: frontend-woad-nu-23.vercel.app |
 
 Total: 30 seconds. Keep voiceover lines short enough to finish within each
 window at a normal speaking pace — trim adjectives before trimming nouns.
