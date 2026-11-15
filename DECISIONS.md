@@ -430,5 +430,37 @@ format: **Decision** — Alternatives considered — Reason.
     to investigate, not an automatic bug report -- the harness's own
     assumptions are also a potential point of failure.
 
+- User reported the live site "feels slow" (2026-11-15). Investigated live
+  and found a real, currently-active bug: `/api/resolve` had no cache of
+  its own, unlike `/api/frames`/`/api/spectrum`/`/api/lightcurve` -- every
+  single name search re-ran a live Gaia DR3 cone search, and Gaia's TAP
+  endpoint was genuinely unreachable at the time (observed directly:
+  `[Errno 110] Connection timed out` and `[Errno -5] No address associated
+  with hostname`, each retry taking well over a minute with
+  `with_backoff`'s default 6 retries -- a multi-minute hang per request,
+  every request, for every Gaia-PM target (4 of the 5 required targets).
+  Fixed in `backend/app/main.py`: a short in-memory TTL cache on
+  `/api/resolve` (15 min for a successful resolve, 60s for a failure) --
+  safe because even Barnard's Star, the fastest-moving target here, drifts
+  ~0.0003" in 15 minutes, three orders of magnitude below this app's own
+  0.36" position rounding. Also halved Gaia's retry budget
+  (`resolve.py`'s `gaia_pm_lookup`, 6 -> 3) so even the first, uncached
+  request during a real outage fails/falls-back faster rather than
+  compounding to the full multi-minute worst case. Verified live:
+  `resolve_target_with_fallback`'s existing graceful-degradation path
+  (fall back to Sesame's static position with a warning when Gaia is
+  genuinely unreachable) kicked in and got cached, so repeat searches for
+  the same name return in ~0.3-0.4s instead of hanging every time.
+  - Note: during a real Gaia outage, the overall "search by name" flow for
+    an affected target is still slow (~2 minutes observed for Barnard's
+    Star) because the Sesame fallback position differs from the
+    Gaia-PM-corrected position baked into the precache, so `/api/frames`
+    still cache-misses and pays a genuine live IRSA fetch -- this is the
+    same, already-accepted and already-communicated (progressive
+    loading-message) IRSA-flakiness tradeoff from the prior session, not a
+    new issue. What's fixed is that the *resolve* step itself no longer
+    hangs repeatedly; what's not fixable is Gaia (or IRSA) itself being
+    down, which is outside this app's control.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)

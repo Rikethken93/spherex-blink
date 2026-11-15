@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,8 +67,37 @@ def targets():
     ]
 
 
+# /api/resolve hits live Gaia DR3 / Sesame on every single call -- unlike
+# /api/frames, it has no cache of its own. A live outage (observed directly:
+# Gaia's TAP endpoint timing out with no error, each retry taking well over
+# a minute to even fail) means every search-by-name for a Gaia-PM target
+# pays that multi-minute cost, repeatedly, for every visitor, even though
+# the resolved position barely moves on any timescale shorter than days
+# (even Barnard's Star, the fastest target here, drifts ~0.0003" in 15
+# minutes -- three orders of magnitude below this app's own 0.36" cache
+# rounding). A short in-memory TTL cache turns "every visitor pays the
+# outage cost" into "the first visitor pays it once"; caching the failure
+# too (briefly) stops a sustained outage from re-paying the full multi-
+# minute retry budget on every single request. Resets on process restart,
+# which is fine -- it exists to smooth over a single machine's uptime, not
+# to be a durable store.
+_RESOLVE_CACHE: dict[str, tuple[float, dict | Exception]] = {}
+_RESOLVE_SUCCESS_TTL_SECONDS = 900.0
+_RESOLVE_FAILURE_TTL_SECONDS = 60.0
+
+
 @app.get("/api/resolve")
 def resolve(name: str = Query(..., min_length=1)):
+    cache_key = name.strip().lower()
+    cached = _RESOLVE_CACHE.get(cache_key)
+    if cached is not None:
+        cached_at, payload = cached
+        ttl = _RESOLVE_FAILURE_TTL_SECONDS if isinstance(payload, Exception) else _RESOLVE_SUCCESS_TTL_SECONDS
+        if time.monotonic() - cached_at < ttl:
+            if isinstance(payload, Exception):
+                raise payload
+            return payload
+
     target = TARGETS_BY_KEY.get(name.lower().replace(" ", "-"))
     try:
         if target is not None:
@@ -77,9 +107,11 @@ def resolve(name: str = Query(..., min_length=1)):
 
             result = resolve_target_name(name)
     except UpstreamUnavailable as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        http_exc = HTTPException(status_code=503, detail=str(exc))
+        _RESOLVE_CACHE[cache_key] = (time.monotonic(), http_exc)
+        raise http_exc from exc
 
-    return {
+    body = {
         "ra_deg": result.ra_deg,
         "dec_deg": result.dec_deg,
         "name": result.name,
@@ -91,6 +123,8 @@ def resolve(name: str = Query(..., min_length=1)):
         "propagated_to_epoch": result.propagated_to_epoch,
         "warning": result.warning,
     }
+    _RESOLVE_CACHE[cache_key] = (time.monotonic(), body)
+    return body
 
 
 @app.get("/api/frames")
