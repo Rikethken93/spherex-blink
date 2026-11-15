@@ -700,3 +700,27 @@ decisions, appended as each milestone lands.)
   IRSA was 502/503-flapping throughout but completed under retry/backoff
   with 2-way concurrency and jitter. All other targets re-rendered from
   the local raw-exposure cache at their existing (correct) positions.
+
+- Follow-up to the user's "loads slow and looks blurrier" report
+  (2026-11-15 evening), both reproduced and fixed live:
+  1. **Slow:** Fly scale-to-zero (`min_machines_running = 0`) made every
+     first visit pay a cold start (6.2s observed for /api/health; the
+     first page load occasionally erroring while the proxy woke a
+     machine). With the trial cap already lifted, `fly.toml` now keeps
+     one machine warm (`min_machines_running = 1`) through judging.
+  2. **Blurrier:** two compounding display regressions/latent bugs.
+     (a) The new Contrast slider attached `filter: contrast(1)` to the
+     image by default -- a no-op mathematically, but a filter forces the
+     element into its own composited layer where the engine can
+     re-rasterize it; the filter now only attaches while the slider is
+     away from 1. (b) The whole-device-pixel alignment in `player.ts`
+     applied its correction on top of an *unrounded* base margin and
+     re-derived it from an already-corrected state on each call -- not
+     idempotent, so any later reflow (the new Notes column/status text)
+     or an odd-width container left the image edge on a half pixel
+     (observed live: a constant -0.5px), which softens `pixelated`
+     rendering everywhere. Rewrote it to reset margins, measure, and
+     place the edge on a whole pixel in one deterministic step, plus a
+     single re-align pass 250ms after each frame load to absorb late
+     reflows. Verified on production at devicePixelRatio 1 and 2:
+     fracLeft/fracTop exactly 0, `filter: none`, frame visible in ~1.7s.

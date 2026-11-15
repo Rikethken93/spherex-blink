@@ -318,10 +318,16 @@ body.low-bandwidth .starfield {
   display: block;
   image-rendering: crisp-edges;
   image-rendering: pixelated;
-  /* --frame-contrast is driven by the Contrast slider (player controls);
-     a pure client-side display adjustment, the cached PNGs are untouched. */
-  filter: contrast(var(--frame-contrast, 1));
   transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+/* Contrast is applied ONLY while the slider is away from 1: a CSS filter
+   -- even a no-op contrast(1) -- forces the image into its own composited
+   layer, where engines may re-rasterize it and soften the pixelated
+   rendering. No slider movement, no filter, no risk. The adjustment is
+   purely client-side; cached PNGs are untouched. */
+.blink-container.contrasted .blink-frame {
+  filter: contrast(var(--frame-contrast, 1));
 }
 
 /* Dim marker showing where the target sat at epoch J2000.0 -- the gap to

@@ -53,6 +53,16 @@ export class BlinkPlayer {
       this.applyIntegerScale();
       this.updateScaleBar();
       this.positionMarker();
+      // Content that renders *after* the image (metadata table, status
+      // line, badges) can reflow ancestors by a fractional pixel,
+      // un-doing the whole-device-pixel alignment applyIntegerScale just
+      // computed -- observed live as a constant 0.5px offset that visibly
+      // softens pixelated rendering. Re-align once more after the layout
+      // has settled.
+      window.setTimeout(() => {
+        this.applyIntegerScale();
+        this.positionMarker();
+      }, 250);
     });
     container.appendChild(this.img);
 
@@ -242,11 +252,19 @@ export class BlinkPlayer {
     // crisp rather than softened at the boundary.
     const containerWidth = this.container.clientWidth;
     const idealMargin = Math.max(0, (containerWidth - width) / 2);
-    this.img.style.marginLeft = `${Math.round(idealMargin)}px`;
-    const rectBefore = this.img.getBoundingClientRect();
-    this.img.style.marginLeft = `${idealMargin + (Math.round(rectBefore.left) - rectBefore.left)}px`;
-    const rectAfter = this.img.getBoundingClientRect();
-    this.img.style.marginTop = `${Math.round(rectAfter.top) - rectAfter.top}px`;
+    // Idempotent alignment: reset margins, measure where layout naturally
+    // puts the image, then set margins that land its edge on a *whole*
+    // pixel. (The previous version applied a correction on top of an
+    // unrounded base margin and re-derived it from an already-corrected
+    // state on each call, so a second pass -- or an odd-width container --
+    // left the edge on a half pixel, which visibly softens pixelated
+    // rendering. Observed live as a constant -0.5px offset.)
+    this.img.style.marginLeft = "0px";
+    this.img.style.marginTop = "0px";
+    const r0 = this.img.getBoundingClientRect();
+    this.img.style.marginLeft = `${Math.round(r0.left + idealMargin) - r0.left}px`;
+    const r1 = this.img.getBoundingClientRect();
+    this.img.style.marginTop = `${Math.round(r1.top) - r1.top}px`;
   }
 
   private updateScaleBar(): void {

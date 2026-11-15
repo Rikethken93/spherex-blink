@@ -243,7 +243,12 @@ function wirePlayerControls(): void {
     blinkContainer.classList.toggle("smooth", (e.target as HTMLInputElement).checked);
   });
   el<HTMLInputElement>("player-contrast").addEventListener("input", (e) => {
-    blinkContainer.style.setProperty("--frame-contrast", (e.target as HTMLInputElement).value);
+    const value = (e.target as HTMLInputElement).value;
+    // Only attach the CSS filter while it actually does something -- see
+    // .blink-container.contrasted in style.css for why a no-op filter
+    // still costs sharpness.
+    blinkContainer.classList.toggle("contrasted", value !== "1");
+    blinkContainer.style.setProperty("--frame-contrast", value);
   });
   el<HTMLInputElement>("player-j2000").addEventListener("change", (e) => {
     player.setJ2000MarkerEnabled((e.target as HTMLInputElement).checked);

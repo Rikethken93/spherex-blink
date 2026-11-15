@@ -12,7 +12,13 @@ primary_region = 'dfw'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  # Keep one machine always warm through the judging window: scale-to-zero
+  # made every first visit pay a multi-second cold start (observed live,
+  # 2026-11-15: 6.2s for /api/health, and the first page load sometimes
+  # erroring outright while the proxy woke a machine). The trial 5-minute
+  # cap is already lifted (payment method added -- see docs/qa/QA_REPORT.md),
+  # so a single warm shared-cpu machine is safe to keep running.
+  min_machines_running = 1
 
   [[http_service.checks]]
     interval = '30s'
