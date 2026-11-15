@@ -2,6 +2,14 @@
 
 All frames in a sequence share one normalization (pipeline.stretch) so the
 blink animation doesn't flicker, which is the whole point of a blink tool.
+
+Pixels with coverage but no usable data are rendered honestly rather than
+disguised as sky: a saturated bright-star core (OVERFLOW/NONLINEAR/BLOOM
+flags in essentially every exposure -- see config.FLAG_SATURATION_BITMASK)
+is drawn white with a thin red outline, and any other fully-masked pixel is
+drawn dark grey. Previously both were filled with the stretch's vmin and
+came out pure black -- a black hole sitting on top of the brightest star in
+the field, which reads as corrupted data.
 """
 from __future__ import annotations
 
@@ -27,6 +35,10 @@ from .stretch import shared_normalization, to_uint8
 # not a fake smooth blur).
 MIN_DISPLAY_PX = 400
 
+MASKED_GREY = (54, 54, 58)
+SATURATED_WHITE = (255, 255, 255)
+SATURATED_OUTLINE = (231, 72, 72)
+
 
 def _upsample_nearest(arr: np.ndarray, min_size: int = MIN_DISPLAY_PX) -> np.ndarray:
     h, w = arr.shape[:2]
@@ -36,8 +48,47 @@ def _upsample_nearest(arr: np.ndarray, min_size: int = MIN_DISPLAY_PX) -> np.nda
     return np.repeat(np.repeat(arr, scale, axis=0), scale, axis=1)
 
 
-def _png_bytes_gray(uint8_array: np.ndarray, crosshair: bool = True) -> bytes:
-    img = Image.fromarray(np.flipud(_upsample_nearest(uint8_array)), mode="L").convert("RGB")
+def _mask_boundary(mask: np.ndarray) -> np.ndarray:
+    """Pixels of `mask` with at least one 4-neighbor outside it -- a thin
+    (1 display px) outline, computed on the already-upsampled mask."""
+    if not mask.any():
+        return mask
+    interior = mask.copy()
+    interior[1:, :] &= mask[:-1, :]
+    interior[:-1, :] &= mask[1:, :]
+    interior[:, 1:] &= mask[:, :-1]
+    interior[:, :-1] &= mask[:, 1:]
+    return mask & ~interior
+
+
+def _compose_rgb(
+    rgb: np.ndarray,
+    saturated: np.ndarray | None,
+    masked: np.ndarray | None,
+) -> Image.Image:
+    """Apply mask styling to an HxWx3 uint8 array (native orientation,
+    row 0 = south), then flip north-up, upsample, and outline saturated
+    cores. Returns a PIL image ready for the crosshair."""
+    if masked is not None and masked.any():
+        rgb[masked] = MASKED_GREY
+    if saturated is not None and saturated.any():
+        rgb[saturated] = SATURATED_WHITE
+
+    rgb = _upsample_nearest(np.flipud(rgb))
+    if saturated is not None and saturated.any():
+        sat_up = _upsample_nearest(np.flipud(saturated))
+        rgb[_mask_boundary(sat_up)] = SATURATED_OUTLINE
+    return Image.fromarray(np.ascontiguousarray(rgb), mode="RGB")
+
+
+def _png_bytes_gray(
+    uint8_array: np.ndarray,
+    saturated: np.ndarray | None = None,
+    masked: np.ndarray | None = None,
+    crosshair: bool = True,
+) -> bytes:
+    rgb = np.dstack([uint8_array] * 3)
+    img = _compose_rgb(rgb, saturated, masked)
     if crosshair:
         img = _draw_crosshair(img)
     buf = io.BytesIO()
@@ -60,12 +111,25 @@ def _draw_crosshair(img: Image.Image) -> Image.Image:
     return img
 
 
-def render_blink_frames(frames: list[np.ndarray]) -> list[bytes]:
+def render_blink_frames(
+    frames: list[np.ndarray],
+    saturated: list[np.ndarray] | None = None,
+    masked: list[np.ndarray] | None = None,
+) -> list[bytes]:
     norm = shared_normalization(frames)
-    return [_png_bytes_gray(to_uint8(f, norm)) for f in frames]
+    out: list[bytes] = []
+    for i, f in enumerate(frames):
+        sat = saturated[i] if saturated is not None else None
+        msk = masked[i] if masked is not None else None
+        out.append(_png_bytes_gray(to_uint8(f, norm), sat, msk))
+    return out
 
 
-def render_difference(frame_first: np.ndarray, frame_last: np.ndarray) -> bytes:
+def render_difference(
+    frame_first: np.ndarray,
+    frame_last: np.ndarray,
+    saturated: np.ndarray | None = None,
+) -> bytes:
     diff = frame_last - frame_first
     finite = diff[np.isfinite(diff)]
     if finite.size == 0:
@@ -75,29 +139,49 @@ def render_difference(frame_first: np.ndarray, frame_last: np.ndarray) -> bytes:
     normed = np.clip((diff + vmax) / (2 * vmax), 0, 1)
     normed = np.nan_to_num(normed, nan=0.5)
     colored = (colormaps["coolwarm"](normed)[:, :, :3] * 255).astype(np.uint8)
-    img = Image.fromarray(np.flipud(_upsample_nearest(colored)), mode="RGB")
+    # In a difference map "white" would read as a strong positive change, so
+    # a saturated core keeps the neutral midpoint fill and gets only the red
+    # outline to say "no reliable difference measurable here".
+    img = _compose_rgb(colored, saturated, None)
     img = _draw_crosshair(img)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
 
 
-def render_sum(frames: list[np.ndarray]) -> bytes:
+def render_sum(
+    frames: list[np.ndarray],
+    saturated: list[np.ndarray] | None = None,
+    masked: list[np.ndarray] | None = None,
+) -> bytes:
     stack = np.stack(frames)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         deep = np.nanmean(stack, axis=0)
     norm = shared_normalization([deep])
-    return _png_bytes_gray(to_uint8(deep, norm))
+    # In the deep stack a pixel only stays empty if it was empty in every
+    # epoch; call it saturated if any epoch classified it so.
+    empty = ~np.isfinite(deep)
+    sat_deep = (empty & np.any(np.stack(saturated), axis=0)) if saturated else None
+    msk_deep = None
+    if saturated is not None or masked is not None:
+        msk_deep = empty & ~sat_deep if sat_deep is not None else empty
+    return _png_bytes_gray(to_uint8(deep, norm), sat_deep, msk_deep)
 
 
-def render_rgb(red: np.ndarray, green: np.ndarray, blue: np.ndarray) -> bytes:
+def render_rgb(
+    red: np.ndarray,
+    green: np.ndarray,
+    blue: np.ndarray,
+    saturated: np.ndarray | None = None,
+    masked: np.ndarray | None = None,
+) -> bytes:
     norm = shared_normalization([red, green, blue])
     r = to_uint8(red, norm)
     g = to_uint8(green, norm)
     b = to_uint8(blue, norm)
     rgb = np.dstack([r, g, b])
-    img = Image.fromarray(np.flipud(_upsample_nearest(rgb)), mode="RGB")
+    img = _compose_rgb(rgb, saturated, masked)
     img = _draw_crosshair(img)
     buf = io.BytesIO()
     img.save(buf, format="PNG")

@@ -23,6 +23,14 @@ class SpectrumPoint:
     mjd: float
 
 
+# Candidate pixel offsets around the requested position, nearest first
+# (centre, then the 4-neighbors, diagonals, and the radius-2 ring).
+_NEIGHBOR_OFFSETS: list[tuple[int, int]] = sorted(
+    ((dx, dy) for dx in range(-2, 3) for dy in range(-2, 3)),
+    key=lambda o: o[0] * o[0] + o[1] * o[1],
+)
+
+
 def extract_spectrum(exposures: list[Exposure], ra_deg: float, dec_deg: float) -> list[SpectrumPoint]:
     from astropy import units as u
     from astropy.coordinates import SkyCoord
@@ -40,12 +48,29 @@ def extract_spectrum(exposures: list[Exposure], ra_deg: float, dec_deg: float) -
         h, w = exposure.image.shape
         if not (0 <= xi < w and 0 <= yi < h):
             continue
-        if exposure.flags[yi, xi] & config.FLAG_BAD_BITMASK:
+        # The exact pixel can be unusable in *every* exposure -- a bright
+        # star's saturated core (OVERFLOW/BLOOM flags, e.g. Proxima
+        # Centauri) -- which previously produced a 0-point spectrum for
+        # the very targets the demo centres on. Fall back to the nearest
+        # usable pixel within a small radius: a PSF-wing spectrum is
+        # biased in absolute flux but preserves the spectral shape, and
+        # is honest about the alternative (no spectrum at all).
+        found = None
+        for dx, dy in _NEIGHBOR_OFFSETS:
+            xj, yj = xi + dx, yi + dy
+            if not (0 <= xj < w and 0 <= yj < h):
+                continue
+            if exposure.flags[yj, xj] & config.FLAG_BAD_BITMASK:
+                continue
+            f = float(exposure.image[yj, xj])
+            v = float(exposure.variance[yj, xj])
+            if np.isfinite(f) and np.isfinite(v) and v >= 0:
+                found = (xj, yj, f, v)
+                break
+        if found is None:
             continue
-        flux = float(exposure.image[yi, xi])
-        var = float(exposure.variance[yi, xi])
-        if not np.isfinite(flux) or not np.isfinite(var) or var < 0:
-            continue
+        xi, yi, flux, var = found
+        x, y = float(xi), float(yi)
         wl = exposure.wavelength_at(x, y)
         if wl is None:
             continue

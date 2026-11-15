@@ -58,5 +58,12 @@
   "error.generic": "Ocurrió un error al comunicarse con la API de SPHEREx Blink.",
   "error.upstream": "El archivo de IRSA está lento o no disponible en este momento. Intenta de nuevo en un momento.",
   "credits.title": "Créditos de datos",
-  "credits.body": "Datos SPHEREx: NASA/IPAC Infrared Science Archive (IRSA). Astrometría: Gaia (ESA), movimientos propios. Catálogos superpuestos: Gaia DR3, AllWISE. Vista del cielo: Aladin Lite (CDS, Observatorio de Estrasburgo)."
+  "credits.body": "Datos SPHEREx: NASA/IPAC Infrared Science Archive (IRSA). Astrometría: Gaia (ESA), movimientos propios. Catálogos superpuestos: Gaia DR3, AllWISE. Vista del cielo: Aladin Lite (CDS, Observatorio de Estrasburgo).",
+  "player.j2000": "Marcador J2000",
+  "player.contrast": "Contraste",
+  "metadata.notes": "Notas",
+  "metadata.saturated_core": "Núcleo saturado",
+  "note.fov_fallback": "Mostrando el campo de {fov}′ en caché (el campo solicitado no está precacheado para este modo)",
+  "aladin.static_note": "Imagen estática del cielo (CDS hips2fits, 2MASS) — la vista interactiva no está disponible ahora; la cruz marca el objetivo.",
+  "aladin.static_alt": "Imagen estática del campo buscado (2MASS)"
 }

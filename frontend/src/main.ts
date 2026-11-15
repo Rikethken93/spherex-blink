@@ -30,6 +30,12 @@ let state: AppState = readStateFromUrl();
 let currentTargets: TargetInfo[] = [];
 let currentCenter: { ra: number; dec: number; fov: number } | null = null;
 
+// Midpoint of the SPHEREx DR1+QR3 observing window -- matches
+// backend/app/resolve.py's survey_mid_epoch(), which is the epoch every
+// target position is propagated to. Used to place the dim "J2000" marker
+// (where the target was at epoch 2000.0) relative to the current position.
+const SURVEY_MID_EPOCH = (2025.3 + 2026.6) / 2;
+
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const statusEl = el<HTMLParagraphElement>("status-message");
@@ -89,10 +95,20 @@ function applyLang(lang: string): void {
 
 async function loadAndShow(raDeg: number, decDeg: number, fovArcmin: number, mode: string): Promise<void> {
   const stopLoading = beginLoading();
+  player.setJ2000Marker(null);
   try {
     const result = await getFrames(raDeg, decDeg, fovArcmin, mode);
     stopLoading();
-    player.setFrames(result.frame_urls.map(frameUrl), fovArcmin);
+    // Problem-4 guard: trust what the backend actually served. If the
+    // served FOV ever differs from the requested one, the URL, the input
+    // and the displayed scale bar must all follow it, not the request.
+    const servedFov = result.fov_arcmin ?? fovArcmin;
+    if (servedFov !== fovArcmin) {
+      state.fov = servedFov;
+      fovInput.value = String(servedFov);
+      writeStateToUrl(state);
+    }
+    player.setFrames(result.frame_urls.map(frameUrl), servedFov);
     renderMetadataTable(metadataHost, result.epochs);
     setStatus(
       `${result.n_exposures_total} exposures -> ${result.epochs.length} epoch(s)` +
@@ -145,6 +161,18 @@ async function showResolvedTarget(
   await loadAndShow(raDeg, decDeg, fovArcmin, mode);
   if (pmraMasYr != null && pmdecMasYr != null) {
     drawProperMotionArrow(raDeg, decDeg, pmraMasYr, pmdecMasYr);
+    // Dim marker at the target's J2000.0 position: makes the accumulated
+    // proper motion since 2000 (the whole reason this app corrects
+    // positions) directly visible next to the crosshair.
+    const dtYr = SURVEY_MID_EPOCH - 2000.0;
+    const cosDec = Math.max(Math.cos((decDeg * Math.PI) / 180), 1e-6);
+    const raJ2000 = raDeg - (pmraMasYr * dtYr) / 3_600_000 / cosDec;
+    const decJ2000 = decDeg - (pmdecMasYr * dtYr) / 3_600_000;
+    const fovDeg = state.fov / 60;
+    player.setJ2000Marker({
+      x: 0.5 - ((raJ2000 - raDeg) * cosDec) / fovDeg,
+      y: 0.5 - (decJ2000 - decDeg) / fovDeg,
+    });
   }
 }
 
@@ -214,6 +242,12 @@ function wirePlayerControls(): void {
   el<HTMLInputElement>("player-smooth").addEventListener("change", (e) => {
     blinkContainer.classList.toggle("smooth", (e.target as HTMLInputElement).checked);
   });
+  el<HTMLInputElement>("player-contrast").addEventListener("input", (e) => {
+    blinkContainer.style.setProperty("--frame-contrast", (e.target as HTMLInputElement).value);
+  });
+  el<HTMLInputElement>("player-j2000").addEventListener("change", (e) => {
+    player.setJ2000MarkerEnabled((e.target as HTMLInputElement).checked);
+  });
 
   blinkContainer.addEventListener("keydown", (e) => {
     if (e.key === " ") {
@@ -279,13 +313,23 @@ function onGalleryPick(target: TargetInfo): void {
   searchInput.value = target.display_name[getLang() === "es" ? "es" : "en"];
   const mode = modeSelect.value;
   const positions = target.cached_positions ?? {};
+  const requestedFov = Number(fovInput.value) || Number(GALLERY_FOV_PREFERENCE[0]);
 
-  for (const fovKey of GALLERY_FOV_PREFERENCE) {
+  // Try the FOV currently in the input first, then the standard preference
+  // order, so picking a card honors the user's chosen FOV when that cache
+  // exists -- and says so when it has to fall back to a different one.
+  const tryOrder = [...new Set([String(requestedFov), ...GALLERY_FOV_PREFERENCE])];
+  for (const fovKey of tryOrder) {
     const entry = positions[fovKey];
     if (entry && entry.modes.includes(mode)) {
+      const fellBack = Number(fovKey) !== requestedFov;
       void showResolvedTarget(
         entry.ra_deg, entry.dec_deg, Number(fovKey), mode, entry.pmra_mas_yr, entry.pmdec_mas_yr, null,
-      );
+      ).then(() => {
+        if (fellBack) {
+          setStatus(`${statusEl.textContent} · ${t("note.fov_fallback").replace("{fov}", fovKey)}`);
+        }
+      });
       return;
     }
   }

@@ -318,7 +318,36 @@ body.low-bandwidth .starfield {
   display: block;
   image-rendering: crisp-edges;
   image-rendering: pixelated;
+  /* --frame-contrast is driven by the Contrast slider (player controls);
+     a pure client-side display adjustment, the cached PNGs are untouched. */
+  filter: contrast(var(--frame-contrast, 1));
   transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+/* Dim marker showing where the target sat at epoch J2000.0 -- the gap to
+   the crosshair is the accumulated proper motion since 2000. Deliberately
+   quiet (low opacity, dashed) so it reads as an annotation, not a second
+   target. */
+.j2000-marker {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 1px dashed color-mix(in srgb, var(--text) 55%, transparent);
+  border-radius: 50%;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.j2000-marker span {
+  position: absolute;
+  top: 13px;
+  left: 9px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--text) 70%, transparent);
+  white-space: nowrap;
 }
 
 /* Smooth is an explicit opt-in (see the Smooth checkbox) for anyone who
@@ -577,4 +606,60 @@ body.low-bandwidth .aladin-container {
 
 body.low-bandwidth .blink-container {
   box-shadow: none;
+}
+
+/* Static sky-view fallback (CDS hips2fits) -- used when the bundled
+   interactive Aladin Lite can't initialize. The marker crosses the full
+   panel through the centre so the target is unmistakable. */
+.static-sky {
+  position: relative;
+}
+
+.static-sky img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.static-sky-marker {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.static-sky-marker::before,
+.static-sky-marker::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 212, 59, 0.85);
+}
+
+.static-sky-marker::before {
+  left: 50%;
+  top: calc(50% - 16px);
+  width: 1px;
+  height: 32px;
+}
+
+.static-sky-marker::after {
+  top: 50%;
+  left: calc(50% - 16px);
+  height: 1px;
+  width: 32px;
+}
+
+.static-sky-note {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  margin: 0.4rem 0 0;
+}
+
+.saturated-badge {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid rgba(231, 72, 72, 0.6);
+  border-radius: 3px;
+  font-size: 0.72rem;
+  white-space: nowrap;
 }

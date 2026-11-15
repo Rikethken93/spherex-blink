@@ -25,12 +25,22 @@ from dataclasses import dataclass
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from astropy.time import Time
 
 from . import config
 from .net import UpstreamUnavailable, with_backoff
 
 logger = logging.getLogger("spherex_blink.resolve")
+
+
+def survey_mid_epoch() -> float:
+    """Default epoch to propagate proper motion to: the midpoint of the
+    DR1+QR3 observing window, not `Time.now()`. The frames being blinked
+    were taken across that window, so centring the cutout/crosshair on the
+    mid-survey position splits a mover's residual drift evenly between the
+    first and last epoch -- propagating to "today" instead would bias a
+    fast target (Barnard's Star moves ~10.4"/yr, ~1.5 SPHEREx pixels per
+    year) toward one edge of its own blink sequence."""
+    return (config.SURVEY_EPOCH_START_DECIMALYEAR + config.SURVEY_EPOCH_END_DECIMALYEAR) / 2.0
 
 
 @dataclass
@@ -167,7 +177,7 @@ def resolve_target_name(
     name: str, target_epoch_decimalyear: float | None = None
 ) -> ResolvedPosition:
     if target_epoch_decimalyear is None:
-        target_epoch_decimalyear = Time.now().decimalyear
+        target_epoch_decimalyear = survey_mid_epoch()
 
     try:
         approx = sesame_resolve(name)
@@ -224,7 +234,7 @@ def resolve_target_with_fallback(target, target_epoch_decimalyear: float | None 
     to the literal fallback coordinates if every name lookup fails.
     """
     if target_epoch_decimalyear is None:
-        target_epoch_decimalyear = Time.now().decimalyear
+        target_epoch_decimalyear = survey_mid_epoch()
 
     if target.known_pmra_mas_yr is not None and target.known_pmdec_mas_yr is not None:
         ra_now, dec_now = propagate_linear(
@@ -235,16 +245,22 @@ def resolve_target_with_fallback(target, target_epoch_decimalyear: float | None 
             target.fallback_epoch_decimalyear,
             target_epoch_decimalyear,
         )
+        # Two flavors of baked-in proper motion: Gaia DR3 astrometry cached
+        # locally (so a Gaia TAP outage can never silently degrade a demo
+        # target to its J2000 position -- observed live 2026-11-15), and
+        # published literature values for targets Gaia can't see at all.
+        is_cached_gaia = (target.known_pm_source or "").startswith("Gaia DR3")
         return ResolvedPosition(
             ra_deg=ra_now,
             dec_deg=dec_now,
             name=target.key,
-            source="literature_pm",
+            source="gaia_dr3_pm" if is_cached_gaia else "literature_pm",
             pmra_mas_yr=target.known_pmra_mas_yr,
             pmdec_mas_yr=target.known_pmdec_mas_yr,
             gaia_ref_epoch=target.fallback_epoch_decimalyear,
             propagated_to_epoch=target_epoch_decimalyear,
-            warning=f"Not in Gaia DR3 (too faint/red); using published proper motion: {target.known_pm_source}",
+            warning=None if is_cached_gaia else
+            f"Not in Gaia DR3 (too faint/red); using published proper motion: {target.known_pm_source}",
         )
 
     last_warning = None

@@ -62,6 +62,24 @@ def targets():
     # a live fetch for one of these 8 demo targets (see DECISIONS.md,
     # 2026-11-15).
     manifest = precache_manifest.read()
+
+    def _with_pm(t, positions: dict) -> dict:
+        # Older manifest entries recorded pm as null when the precache run
+        # resolved through a fallback path; the target's own cached/
+        # literature PM is still the truth -- fill it in so the frontend's
+        # PM arrow and J2000 marker work for every gallery target that has
+        # a known proper motion.
+        if t.known_pmra_mas_yr is None:
+            return positions
+        return {
+            fov: {
+                **entry,
+                "pmra_mas_yr": entry.get("pmra_mas_yr") or t.known_pmra_mas_yr,
+                "pmdec_mas_yr": entry.get("pmdec_mas_yr") or t.known_pmdec_mas_yr,
+            }
+            for fov, entry in positions.items()
+        }
+
     return [
         {
             "key": t.key,
@@ -71,7 +89,7 @@ def targets():
             "note": t.note,
             "ra_deg": t.fallback_ra_deg,
             "dec_deg": t.fallback_dec_deg,
-            "cached_positions": manifest.get(t.key, {}),
+            "cached_positions": _with_pm(t, manifest.get(t.key, {})),
         }
         for t in ALL_TARGETS
     ]

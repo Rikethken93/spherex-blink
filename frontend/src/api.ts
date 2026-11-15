@@ -21,6 +21,9 @@ export interface EpochMeta {
   flag_fraction: number;
   detectors: number[];
   wavelengths_um: number[];
+  // True when the frame contains a blown-out bright-star core (rendered
+  // white with a red outline). Absent in cache entries from older builds.
+  saturated_core?: boolean;
 }
 
 export interface FramesResult {
@@ -33,6 +36,9 @@ export interface FramesResult {
   epochs: EpochMeta[];
   n_exposures_total: number;
   cache_hit: boolean;
+  // Present when the backend served a precached entry within a few
+  // arcseconds of the requested position instead of a live fetch.
+  snapped_arcsec?: number;
 }
 
 export interface SpectrumPoint {

@@ -17,6 +17,7 @@ export function renderMetadataTable(container: HTMLElement, epochs: EpochMeta[])
         <td>${(e.flag_fraction * 100).toFixed(1)}%</td>
         <td>${e.detectors.join(", ")}</td>
         <td>${e.wavelengths_um.map((w) => w.toFixed(2)).join(", ")}</td>
+        <td>${e.saturated_core ? `<span class="saturated-badge">${t("metadata.saturated_core")}</span>` : ""}</td>
       </tr>`,
     )
     .join("");
@@ -32,6 +33,7 @@ export function renderMetadataTable(container: HTMLElement, epochs: EpochMeta[])
           <th scope="col">${t("metadata.flag_fraction")}</th>
           <th scope="col">${t("metadata.detectors")}</th>
           <th scope="col">${t("metadata.wavelengths")}</th>
+          <th scope="col">${t("metadata.notes")}</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>

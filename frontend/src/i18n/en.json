@@ -58,5 +58,12 @@
   "error.generic": "Something went wrong talking to the SPHEREx Blink API.",
   "error.upstream": "The IRSA archive is slow or unavailable right now. Please try again shortly.",
   "credits.title": "Data credits",
-  "credits.body": "SPHEREx data: NASA/IPAC Infrared Science Archive (IRSA). Astrometry: Gaia (ESA), proper motions. Catalog overlays: Gaia DR3, AllWISE. Sky view: Aladin Lite (CDS, Strasbourg Observatory)."
+  "credits.body": "SPHEREx data: NASA/IPAC Infrared Science Archive (IRSA). Astrometry: Gaia (ESA), proper motions. Catalog overlays: Gaia DR3, AllWISE. Sky view: Aladin Lite (CDS, Strasbourg Observatory).",
+  "player.j2000": "J2000 marker",
+  "player.contrast": "Contrast",
+  "metadata.notes": "Notes",
+  "metadata.saturated_core": "Saturated core",
+  "note.fov_fallback": "Showing the cached {fov}′ field (the requested field of view isn't precached for this mode)",
+  "aladin.static_note": "Static sky image (CDS hips2fits, 2MASS) — interactive sky view unavailable right now; the cross marks the target.",
+  "aladin.static_alt": "Static sky image of the searched field (2MASS)"
 }

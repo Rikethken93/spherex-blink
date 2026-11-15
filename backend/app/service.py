@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 import os
 
-from . import cache, config
+from . import cache, config, precache_manifest
 from .errors import InvalidRequestError, NoCoverageError
 from .irsa_client import ExposureMeta, fetch_exposures, query_exposure_metadata
 from .pipeline.epochs import epoch_summary, group_into_epochs
@@ -121,9 +121,38 @@ def _epoch_metadata(epochs, stacked_epochs) -> list[dict]:
                 "flag_fraction": stacked.flag_fraction,
                 "detectors": stacked.detectors,
                 "wavelengths_um": stacked.wavelengths_um,
+                # The white-with-red-outline core in the rendered frame --
+                # surfaced in the metadata table so it's labeled, not
+                # mysterious (see render.py / config.FLAG_SATURATION_BITMASK).
+                "saturated_core": bool(stacked.saturated.any()),
             }
         )
     return epoch_meta
+
+
+def _snap_to_manifest(ra_deg: float, dec_deg: float, fov_arcmin: float, mode: str | None):
+    """If (ra, dec) is within config.MANIFEST_SNAP_ARCSEC of a position the
+    precache manifest records as fully cached at this FOV (and mode, when
+    given), return that manifest position. Lets a live name resolution that
+    differs from the precached position at the sub-arcsecond level (e.g.
+    live Gaia astrometry vs. the cached anchor) hit the demo cache instead
+    of falling through to a multi-minute live IRSA fetch."""
+    manifest = precache_manifest.read()
+    fkey = precache_manifest.fov_key(fov_arcmin)
+    best = None
+    cos_dec = max(abs(math.cos(math.radians(dec_deg))), 1e-6)
+    for fovs in manifest.values():
+        entry = fovs.get(fkey)
+        if not entry:
+            continue
+        if mode is not None and mode not in entry.get("modes", []):
+            continue
+        d_arcsec = math.hypot(
+            (entry["ra_deg"] - ra_deg) * cos_dec, entry["dec_deg"] - dec_deg
+        ) * 3600.0
+        if d_arcsec <= config.MANIFEST_SNAP_ARCSEC and (best is None or d_arcsec < best[0]):
+            best = (d_arcsec, entry["ra_deg"], entry["dec_deg"])
+    return best
 
 
 def _render_mode(
@@ -137,19 +166,31 @@ def _render_mode(
 ) -> list[str]:
     frame_names: list[str] = []
     if mode == "blink":
-        pngs = render_blink_frames([s.image for s in stacked_epochs])
+        pngs = render_blink_frames(
+            [s.image for s in stacked_epochs],
+            saturated=[s.saturated for s in stacked_epochs],
+            masked=[s.masked for s in stacked_epochs],
+        )
         for i, png in enumerate(pngs):
             name = f"frame_{i}.png"
             cache.write_bytes(cache_dir, name, png)
             frame_names.append(name)
     elif mode == "sum":
-        png = render_sum([s.image for s in stacked_epochs])
+        png = render_sum(
+            [s.image for s in stacked_epochs],
+            saturated=[s.saturated for s in stacked_epochs],
+            masked=[s.masked for s in stacked_epochs],
+        )
         cache.write_bytes(cache_dir, "frame_0.png", png)
         frame_names.append("frame_0.png")
     elif mode == "difference":
         if len(stacked_epochs) < 2:
             raise InvalidRequestError("difference mode needs at least 2 epochs")
-        png = render_difference(stacked_epochs[0].image, stacked_epochs[-1].image)
+        png = render_difference(
+            stacked_epochs[0].image,
+            stacked_epochs[-1].image,
+            saturated=stacked_epochs[0].saturated | stacked_epochs[-1].saturated,
+        )
         cache.write_bytes(cache_dir, "frame_0.png", png)
         frame_names.append("frame_0.png")
     elif mode == "rgb":
@@ -169,9 +210,12 @@ def _render_mode(
 
         def band_stack(band: int):
             band_exposures = [e for e in exposures if e.detector == band]
-            return stack_epoch(band_exposures, ra_deg, dec_deg, fov_arcmin).image
+            return stack_epoch(band_exposures, ra_deg, dec_deg, fov_arcmin)
 
-        png = render_rgb(band_stack(hi), band_stack(mid), band_stack(lo))
+        s_r, s_g, s_b = band_stack(hi), band_stack(mid), band_stack(lo)
+        sat_rgb = s_r.saturated | s_g.saturated | s_b.saturated
+        msk_rgb = (s_r.masked & s_g.masked & s_b.masked) & ~sat_rgb
+        png = render_rgb(s_r.image, s_g.image, s_b.image, saturated=sat_rgb, masked=msk_rgb)
         cache.write_bytes(cache_dir, "frame_0.png", png)
         frame_names.append("frame_0.png")
     return frame_names
@@ -195,6 +239,23 @@ def get_frames(
     if cached is not None:
         cached["cache_hit"] = True
         return cached
+
+    # Near-miss against a precached position (default detector/wavelength
+    # only -- the manifest doesn't track filtered variants)? Serve that
+    # cache: the returned ra_deg/dec_deg are the cache's own, so the
+    # crosshair stays correct for the frames actually served.
+    if detector is None and wl_min is None and wl_max is None:
+        snapped = _snap_to_manifest(ra_deg, dec_deg, fov_arcmin, mode)
+        if snapped is not None:
+            d_arcsec, snap_ra, snap_dec = snapped
+            snap_dir = cache.frames_cache_dir(
+                snap_ra, snap_dec, fov_arcmin, mode, str(detector), str(wl_min), str(wl_max)
+            )
+            snap_cached = cache.read_json(snap_dir)
+            if snap_cached is not None:
+                snap_cached["cache_hit"] = True
+                snap_cached["snapped_arcsec"] = round(d_arcsec, 2)
+                return snap_cached
 
     exposures, epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin, detector, wl_min, wl_max)
     epoch_meta = _epoch_metadata(epochs, stacked_epochs)
@@ -224,6 +285,12 @@ def get_spectrum(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV_D
     if cached is not None:
         return cached
 
+    snapped = _snap_to_manifest(ra_deg, dec_deg, fov_arcmin, None)
+    if snapped is not None:
+        snap_cached = cache.read_json(cache.spectrum_cache_dir(snapped[1], snapped[2], fov_arcmin))
+        if snap_cached is not None:
+            return snap_cached
+
     exposures, _epochs, _stacked = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
     points = [p.__dict__ for p in extract_spectrum(exposures, ra_deg, dec_deg)]
     cache.write_json(cache_dir, points)
@@ -235,6 +302,12 @@ def get_lightcurve(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV
     cached = cache.read_json(cache_dir)
     if cached is not None:
         return cached
+
+    snapped = _snap_to_manifest(ra_deg, dec_deg, fov_arcmin, None)
+    if snapped is not None:
+        snap_cached = cache.read_json(cache.lightcurve_cache_dir(snapped[1], snapped[2], fov_arcmin))
+        if snap_cached is not None:
+            return snap_cached
 
     _exposures, _epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
     points = [_json_safe_point(p.__dict__) for p in build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)]

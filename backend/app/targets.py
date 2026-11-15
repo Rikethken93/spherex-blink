@@ -42,15 +42,24 @@ REQUIRED_TARGETS: list[Target] = [
         key="barnards-star",
         display_name={"en": "Barnard's Star", "es": "Estrella de Barnard"},
         resolve_names=["Barnard's Star", "GJ 699"],
-        fallback_ra_deg=269.448,
-        fallback_dec_deg=4.6933,
-        fallback_epoch_decimalyear=2000.0,
+        # Gaia DR3 4472832130942575872, astrometry at ref_epoch 2016.0.
+        # Cached locally (not looked up live) because a sustained Gaia TAP
+        # outage (observed 2026-11-15) made every live lookup fall back to
+        # the static Sesame J2000 position -- which for this star is ~269"
+        # (over 43 SPHEREx pixels) away from its true 2026 position,
+        # putting it entirely outside a 6' cutout. See DECISIONS.md.
+        fallback_ra_deg=269.4485025254,
+        fallback_dec_deg=4.7394200511,
+        fallback_epoch_decimalyear=2016.0,
         category="high-pm",
         required=True,
         note={
             "en": "Highest proper motion of any star visible from Earth (~10.3\"/yr).",
             "es": "El movimiento propio más alto de cualquier estrella visible desde la Tierra (~10,3\"/año).",
         },
+        known_pmra_mas_yr=-801.551,
+        known_pmdec_mas_yr=10362.394,
+        known_pm_source="Gaia DR3 4472832130942575872 (ref_epoch 2016.0), cached locally so resolution never depends on live Gaia TAP availability.",
     ),
     Target(
         key="epsilon-indi-b",
@@ -121,15 +130,23 @@ EXTRA_TARGETS: list[Target] = [
         key="proxima-centauri",
         display_name={"en": "Proxima Centauri", "es": "Próxima Centauri"},
         resolve_names=["Proxima Centauri", "GJ 551"],
-        fallback_ra_deg=217.4289,
-        fallback_dec_deg=-62.6795,
-        fallback_epoch_decimalyear=2000.0,
+        # Gaia DR3 5853498713190525696, astrometry at ref_epoch 2016.0.
+        # Cached locally for the same reason as Barnard's Star above: the
+        # J2000 position is ~98" (~16 SPHEREx pixels) from the true 2026
+        # position, which visibly misplaced the star off the crosshair
+        # (and outside a 3' cutout) when Gaia TAP was unreachable.
+        fallback_ra_deg=217.3923214720,
+        fallback_dec_deg=-62.6760751168,
+        fallback_epoch_decimalyear=2016.0,
         category="variable",
         required=False,
         note={
             "en": "Closest star to the Sun; a flare star best seen from southern latitudes like Colombia.",
             "es": "La estrella más cercana al Sol; una estrella fulgurante que se ve mejor desde latitudes sureñas como Colombia.",
         },
+        known_pmra_mas_yr=-3781.741,
+        known_pmdec_mas_yr=769.465,
+        known_pm_source="Gaia DR3 5853498713190525696 (ref_epoch 2016.0), cached locally so resolution never depends on live Gaia TAP availability.",
     ),
     Target(
         key="luhman-16",

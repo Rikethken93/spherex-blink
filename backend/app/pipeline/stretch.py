@@ -1,10 +1,22 @@
-"""A single shared asinh/zscale stretch computed across all frames of a
-sequence, so blinking between them doesn't flicker from per-frame
-normalization differences."""
+"""A single shared asinh stretch computed across all frames of a sequence,
+so blinking between them doesn't flicker from per-frame normalization
+differences.
+
+The clip interval is a plain 1-99.5 percentile of all finite pixels across
+every frame, not ZScale: ZScale fits the display range tightly around the
+sky background's own scatter, which in a crowded Milky Way field (Proxima
+Centauri sits at galactic latitude ~-2) stretches pure noise into a frame
+full of fake "stars". A percentile clip keeps the faint end anchored at the
+actual dark end of the data and lets asinh compress the bright end, so real
+sources stand out of a quiet background instead of competing with amplified
+noise."""
 from __future__ import annotations
 
 import numpy as np
-from astropy.visualization import AsinhStretch, ImageNormalize, ZScaleInterval
+from astropy.visualization import AsinhStretch, ImageNormalize
+
+CLIP_LO_PERCENTILE = 1.0
+CLIP_HI_PERCENTILE = 99.5
 
 
 def shared_normalization(frames: list[np.ndarray]) -> ImageNormalize:
@@ -16,8 +28,8 @@ def shared_normalization(frames: list[np.ndarray]) -> ImageNormalize:
     finite_values = np.concatenate(parts) if parts else np.array([0.0, 1.0])
     if finite_values.size == 0:
         finite_values = np.array([0.0, 1.0])
-    interval = ZScaleInterval()
-    vmin, vmax = interval.get_limits(finite_values)
+    vmin = float(np.percentile(finite_values, CLIP_LO_PERCENTILE))
+    vmax = float(np.percentile(finite_values, CLIP_HI_PERCENTILE))
     if vmax <= vmin:
         vmax = vmin + 1.0
     return ImageNormalize(vmin=vmin, vmax=vmax, stretch=AsinhStretch(a=0.1))

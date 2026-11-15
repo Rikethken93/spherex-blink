@@ -585,3 +585,118 @@ format: **Decision** — Alternatives considered — Reason.
 
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)
+
+## Final-day fixes (2026-11-15, submission day)
+
+- **Root-caused the "Proxima looks blurry/black-cored/off-centre" report
+  to three independent, compounding causes** (full writeup with
+  before/after images: `docs/qa/BLUR_DIAGNOSIS.md`): (1) proper motion
+  silently not applied -- the ongoing Gaia TAP outage made Proxima and
+  Barnard's Star fall back to static J2000 positions, confirmed by the
+  live SIA logs (`POS=CIRCLE 217.429 -62.6795` *is* Proxima's J2000
+  position, ~98" from its 2026 position; Barnard's is ~269" off --
+  outside a 6' half-width entirely); (2) the ZScale display stretch,
+  which in a galactic-latitude -2 field amplifies the noise floor into
+  wall-to-wall fake "stars"; (3) saturated bright-star cores (OVERFLOW/
+  SUR_ERROR/BLOOM/NONLINEAR flags confirmed set in every real exposure's
+  core pixels) masked to NaN and then filled with the stretch minimum --
+  a pure black blob exactly on the star. The displayed "blur" was the sum
+  of these, not a resampling bug: the reprojection grid was already at
+  SPHEREx's native 6.2"/px, PNGs lossless, display scaling integer.
+
+- **Gaia DR3 astrometry for Proxima Centauri and Barnard's Star is now
+  cached locally in `targets.py`** (source_ids 5853498713190525696 /
+  4472832130942575872, ref_epoch 2016.0 positions + proper motions),
+  flowing through the same `known_pm` path as the literature-PM brown
+  dwarfs. — Alternative: keep the live Gaia TAP lookup and hope the
+  outage ends. — Reason: the outage was observed again today from this
+  network (both ESA TAP and TAPVizieR timing out); a demo target's
+  scientific correctness cannot depend on a third-party service being up
+  at judging time. Live Gaia lookup remains for arbitrary name searches.
+  Regression tests pin the J2000->survey-epoch displacements (~98" and
+  ~265-270", `tests/test_proper_motion.py`).
+
+- **Proper motion now propagates to the survey mid-epoch
+  ((2025.3+2026.6)/2), not `Time.now()`.** — Reason: the blinked frames
+  span the DR1+QR3 window; centring on its midpoint splits a mover's
+  drift evenly across the sequence instead of biasing it toward the last
+  epoch, and (unlike "now") it doesn't drift between precache time and
+  request time, so precached positions and live resolutions agree
+  permanently.
+
+- **`/api/frames|spectrum|lightcurve` snap to a precached position within
+  20" (same FOV, and mode where applicable)** instead of treating a
+  sub-arcsecond difference between a live resolution and the precached
+  centre as a cache miss that triggers a multi-minute live IRSA fetch.
+  20" is ~3 SPHEREx pixels -- invisible at the app's FOV range but wide
+  enough to absorb resolution-path differences. The response's
+  ra/dec are the cache's own, so the crosshair stays truthful.
+
+- **Stretch: ZScale -> asinh over a 1-99.5 percentile clip computed
+  across all frames of a sequence** (`pipeline/stretch.py`), still one
+  shared normalization per sequence so blinking doesn't flicker; plus a
+  client-side Contrast slider (CSS `filter: contrast()`, cached PNGs
+  untouched).
+
+- **Saturated cores render white with a thin red outline; other
+  fully-masked pixels render dark grey; "Saturated core" is surfaced in
+  the epoch metadata table.** New `config.FLAG_SATURATION_BITMASK`
+  (OVERFLOW/SUR_ERROR/NONLINEAR/BLOOM, bit meanings confirmed from the
+  `MSKNnnnn` keywords in the real FLAGS HDUs). A covered-but-empty pixel
+  is "saturated" when >=30% of covering exposures flagged it saturated.
+  Tests: `tests/test_saturation.py`.
+
+- **Reprojection switched from bilinear `reproject_interp` to
+  `reproject_adaptive`** (anti-aliased DeForest resampling,
+  `conserve_flux=False` for MJy/sr surface-brightness data) for
+  image/variance; masks reproject nearest-neighbor, and the mask
+  reprojection's footprint provides the *geometric* coverage needed to
+  classify saturated cores (adaptive's own footprint is zero where the
+  masked input was NaN -- discovered when the first classification
+  attempt silently produced zero saturated pixels on real data).
+
+- **Spectrum extraction falls back to the nearest usable pixel within a
+  radius-2 neighborhood when the exact target pixel is flagged in an
+  exposure.** — Reason, found immediately after the PM fix: with Proxima
+  finally centred, the centre pixel is its *saturated core* in every
+  exposure, and the strict "skip flagged" rule produced a 0-point
+  spectrum for the demo's headline target. A PSF-wing spectrum is biased
+  in absolute flux but preserves spectral shape -- better than an empty
+  panel, and honestly derived from unflagged pixels.
+
+- **Aladin Lite is now bundled from the `aladin-lite` npm package
+  (dynamic import, own Vite chunk) instead of loaded from the CDS CDN at
+  runtime; on any init failure (12s timeout included) the panel falls
+  back to a static CDS hips2fits image (2MASS color) of the same field
+  with a centre marker, and only shows the "unavailable" text if even
+  that image fails.** — Reason: the CDN outage this week left the panel
+  permanently empty on production; bundling removes the script
+  dependency entirely (the frontend has no CSP that would block the
+  inlined wasm -- verified `vercel.json` sets none), and hips2fits was
+  confirmed reachable today even while the Aladin CDN path was not. The
+  2.6MB aladin chunk is code-split so the primary blink view and
+  low-bandwidth mode never download it.
+
+- **FOV state sync (Problem 4):** gallery picks now try the FOV in the
+  input first, then the standard 6'->3' preference, and when the served
+  FOV differs from the requested one the input, URL and scale bar all
+  follow the *served* value, with an explicit status note. `loadAndShow`
+  additionally trusts the backend's `fov_arcmin` echo over the request.
+
+- **Dim "J2000" marker in the blink viewport** (player checkbox, on by
+  default): a dashed circle at the target's epoch-2000 position computed
+  from its proper motion, hidden automatically when outside the frame
+  (e.g. Barnard's Star at 6', whose 270" displacement doesn't fit). The
+  gap between the marker and the crosshair is the accumulated proper
+  motion this app corrects for -- the pedagogical point of the tool.
+
+- **`/api/targets` fills a cached position's null pm fields from the
+  target's own cached/literature PM** -- older manifest entries recorded
+  null when the precache run resolved through a fallback path, which
+  silently disabled the frontend's PM arrow and J2000 marker.
+
+- **Re-precache scope:** Proxima + Barnard re-fetched live at corrected
+  positions (FOV 3' and 6', all four modes + spectrum/light curve) --
+  IRSA was 502/503-flapping throughout but completed under retry/backoff
+  with 2-way concurrency and jitter. All other targets re-rendered from
+  the local raw-exposure cache at their existing (correct) positions.

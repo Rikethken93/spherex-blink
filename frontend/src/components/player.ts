@@ -31,6 +31,9 @@ export class BlinkPlayer {
   private scaleBar: HTMLDivElement;
   private scaleBarTrack: HTMLDivElement;
   private scaleBarLabel: HTMLSpanElement;
+  private marker: HTMLDivElement;
+  private markerFrac: { x: number; y: number } | null = null;
+  private markerEnabled = true;
   private callbacks: PlayerCallbacks;
 
   constructor(container: HTMLElement, callbacks: PlayerCallbacks = {}) {
@@ -49,6 +52,7 @@ export class BlinkPlayer {
     this.img.addEventListener("load", () => {
       this.applyIntegerScale();
       this.updateScaleBar();
+      this.positionMarker();
     });
     container.appendChild(this.img);
 
@@ -62,10 +66,25 @@ export class BlinkPlayer {
     this.scaleBar.appendChild(this.scaleBarLabel);
     container.appendChild(this.scaleBar);
 
+    // Dim "J2000 position" marker: where this target *was* at epoch
+    // J2000.0, so the gap to the crosshair makes its proper motion
+    // since 2000 visible and explains why older charts point elsewhere.
+    this.marker = document.createElement("div");
+    this.marker.className = "j2000-marker";
+    this.marker.setAttribute("aria-hidden", "true");
+    this.marker.style.display = "none";
+    const markerLabel = document.createElement("span");
+    markerLabel.textContent = "J2000";
+    this.marker.appendChild(markerLabel);
+    container.appendChild(this.marker);
+
     let resizeTimer: number | null = null;
     window.addEventListener("resize", () => {
       if (resizeTimer !== null) window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => this.applyIntegerScale(), 150);
+      resizeTimer = window.setTimeout(() => {
+        this.applyIntegerScale();
+        this.positionMarker();
+      }, 150);
     });
   }
 
@@ -75,6 +94,38 @@ export class BlinkPlayer {
     if (fovArcmin !== undefined) this.fovArcmin = fovArcmin;
     this.index = 0;
     this.render();
+  }
+
+  /** Place the J2000 marker at an image-fraction position (same convention
+   * as onImageClick: 0,0 = top-left). Pass null (or an off-image fraction)
+   * to hide it. */
+  setJ2000Marker(frac: { x: number; y: number } | null): void {
+    this.markerFrac =
+      frac && frac.x >= 0.02 && frac.x <= 0.98 && frac.y >= 0.02 && frac.y <= 0.98 ? frac : null;
+    this.positionMarker();
+  }
+
+  setJ2000MarkerEnabled(on: boolean): void {
+    this.markerEnabled = on;
+    this.positionMarker();
+  }
+
+  private positionMarker(): void {
+    if (!this.markerFrac || !this.markerEnabled || this.frames.length === 0) {
+      this.marker.style.display = "none";
+      return;
+    }
+    const imgRect = this.img.getBoundingClientRect();
+    const containerRect = this.container.getBoundingClientRect();
+    if (!imgRect.width) {
+      this.marker.style.display = "none";
+      return;
+    }
+    const left = imgRect.left - containerRect.left + this.markerFrac.x * imgRect.width;
+    const top = imgRect.top - containerRect.top + this.markerFrac.y * imgRect.height;
+    this.marker.style.left = `${left}px`;
+    this.marker.style.top = `${top}px`;
+    this.marker.style.display = "block";
   }
 
   setRockMode(on: boolean): void {

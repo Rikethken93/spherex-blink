@@ -60,6 +60,16 @@ _SOURCE_BIT = 21
 # overflow a bitwise AND against it).
 FLAG_BAD_BITMASK = 0x3FFFFFFF & ~(1 << _SOURCE_BIT)
 
+# Subset of the bad bits that specifically mean "this pixel's value blew
+# past the detector's usable range" -- OVERFLOW(1, overflow during
+# sample-up-the-ramp), SUR_ERROR(2), NONLINEAR(15), BLOOM(26). Confirmed
+# against real cutouts of Proxima Centauri's core (every exposure's
+# brightest pixels carry OVERFLOW/BLOOM), these are what used to render as
+# a pure-black blob on top of a bright star: all-NaN after masking, filled
+# with vmin. Rendered distinctly (white core, thin red outline) instead --
+# see pipeline/render.py.
+FLAG_SATURATION_BITMASK = (1 << 1) | (1 << 2) | (1 << 15) | (1 << 26)
+
 # --- Detectors / linear variable filter bands -------------------------------
 # Wavelength coverage and resolving power per detector array (SPHEREx
 # "Spectral Response" instrument papers). energy_bandpassname in SIA results
@@ -130,6 +140,17 @@ HTTP_CONCURRENCY = 12
 # re-fetched).
 PRECACHE_CONCURRENCY = 2
 PRECACHE_JITTER_RANGE_SECONDS = (1.0, 3.0)
+
+# A cache-miss position within this angular distance of a position the
+# precache manifest says is fully cached (same FOV + mode) is served from
+# that cache instead of falling through to a multi-minute live IRSA fetch.
+# 20" is ~3 SPHEREx pixels -- far below anything that changes what a user
+# sees in a 3-15' field, but enough to absorb the sub-arcsecond drift
+# between a live Gaia-PM resolution and the position the precache run
+# actually used (they propagate to the same epoch, but Gaia's own
+# astrometry vs. a cached anchor can differ at the mas level, and the
+# cache key rounds at 0.36").
+MANIFEST_SNAP_ARCSEC = 20.0
 
 # --- Cache -------------------------------------------------------------------
 import os
