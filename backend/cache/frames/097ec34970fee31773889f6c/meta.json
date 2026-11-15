@@ -1,6 +1,6 @@
 {
-  "ra_deg": 162.30872273410387,
-  "dec_deg": -53.31756974024766,
+  "ra_deg": 162.3087210422121,
+  "dec_deg": -53.317569609385195,
   "fov_arcmin": 3.0,
   "mode": "blink",
   "detector": null,
@@ -34,7 +34,8 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 61030.85004581,
@@ -57,7 +58,8 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 61184.402805787,
@@ -80,7 +82,8 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     }
   ],
   "n_exposures_total": 464,

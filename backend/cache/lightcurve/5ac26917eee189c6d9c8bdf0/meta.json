@@ -1,0 +1,29 @@
+[
+  {
+    "mjd": 60886.188015770684,
+    "mjd_min": 60878.492711829,
+    "mjd_max": 60910.221352812,
+    "flux": null,
+    "error": null,
+    "n_exposures": 126,
+    "flag_fraction": 0.12486614250387536
+  },
+  {
+    "mjd": 61085.536327273694,
+    "mjd_min": 61075.863502616,
+    "mjd_max": 61126.510502188,
+    "flux": null,
+    "error": null,
+    "n_exposures": 133,
+    "flag_fraction": 0.14571987822656113
+  },
+  {
+    "mjd": 61252.00056989844,
+    "mjd_min": 61241.354167465,
+    "mjd_max": 61285.475402685,
+    "flux": null,
+    "error": null,
+    "n_exposures": 124,
+    "flag_fraction": 0.12769751536484686
+  }
+]

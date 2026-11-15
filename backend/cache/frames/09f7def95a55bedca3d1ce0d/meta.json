@@ -32,14 +32,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 60979.722677164,
       "mjd_max": 61022.368105475,
       "mjd_mean": 60991.342709244615,
       "n_exposures": 129,
-      "flag_fraction": 0.043644829683880275,
+      "flag_fraction": 0.04364482968388029,
       "detectors": [
         1,
         2,
@@ -55,7 +56,8 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 61151.197933206,
@@ -78,7 +80,8 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     }
   ],
   "n_exposures_total": 262,

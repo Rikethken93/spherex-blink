@@ -18,7 +18,7 @@
       "mjd_max": 60938.232057836,
       "mjd_mean": 60928.17280786884,
       "n_exposures": 113,
-      "flag_fraction": 0.04682424041349516,
+      "flag_fraction": 0.04682424041349517,
       "detectors": [
         1,
         2,
@@ -34,14 +34,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 61091.719615949,
       "mjd_max": 61111.002086979,
       "mjd_mean": 61102.25438989044,
       "n_exposures": 114,
-      "flag_fraction": 0.039496030459169586,
+      "flag_fraction": 0.03949603045916958,
       "detectors": [
         1,
         2,
@@ -57,7 +58,8 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 61285.097169329,
@@ -80,7 +82,8 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     }
   ],
   "n_exposures_total": 339,

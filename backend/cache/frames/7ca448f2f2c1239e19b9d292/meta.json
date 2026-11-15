@@ -16,7 +16,7 @@
       "mjd_max": 60910.221352812,
       "mjd_mean": 60886.188015770684,
       "n_exposures": 126,
-      "flag_fraction": 0.08921663068512058,
+      "flag_fraction": 0.08921663068512059,
       "detectors": [
         1,
         2,
@@ -39,7 +39,7 @@
       "mjd_max": 61126.510502188,
       "mjd_mean": 61085.536327273694,
       "n_exposures": 133,
-      "flag_fraction": 0.11426515259218474,
+      "flag_fraction": 0.11426515259218473,
       "detectors": [
         1,
         2,

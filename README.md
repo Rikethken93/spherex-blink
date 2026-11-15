@@ -246,13 +246,16 @@ for a full log of what was decided and why.
   baselines involved here, but not suitable for sub-arcsecond astrometry.
 - RGB composite mode needs at least 3 of the 6 SPHEREx detector bands
   present in the queried field; difference mode needs at least 2 epochs.
-- The sky-view panel (Aladin Lite) degrades gracefully but depends on an
-  external CDN (`aladin.cds.unistra.fr`) outside this project's control.
-  During development that CDN had a full outage (every pinned API version
-  under `/AladinLite/api/v3/` returned a branded "Page unavailable" error);
-  the app detects this and shows a short message in that panel instead of
-  breaking the rest of the UI, but the sky view itself is simply
-  unavailable until the CDN recovers. Low-bandwidth mode skips it entirely.
+- The sky-view panel runs Aladin Lite **bundled from the `aladin-lite`
+  npm package** (its own code-split chunk), so no runtime script CDN is
+  involved -- that dependency bit us once already (full
+  `aladin.cds.unistra.fr` outage during development). HiPS tiles and
+  catalog overlays are still fetched from CDS at runtime; if interactive
+  initialization fails for any reason, the panel falls back to a static
+  image of the same field from the CDS hips2fits service (2MASS color)
+  with a marker on the target, and only shows a short "unavailable"
+  message if even that fails. Low-bandwidth mode skips the panel
+  entirely.
 - Docker image build was not verified with an actual `docker build` in
   this environment (no Docker daemon available); the Dockerfile follows a
   standard `python:3.12-slim` + pip-install pattern and should build

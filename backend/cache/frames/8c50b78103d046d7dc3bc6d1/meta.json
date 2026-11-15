@@ -34,14 +34,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": true
     },
     {
       "mjd_min": 60979.722677164,
       "mjd_max": 61022.368105475,
-      "mjd_mean": 60991.32261808718,
-      "n_exposures": 128,
-      "flag_fraction": 0.04035374554102259,
+      "mjd_mean": 60991.08617084443,
+      "n_exposures": 127,
+      "flag_fraction": 0.0404655125600382,
       "detectors": [
         1,
         2,
@@ -57,14 +58,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 61151.197933206,
       "mjd_max": 61174.287217755,
       "mjd_mean": 61161.924953326605,
       "n_exposures": 101,
-      "flag_fraction": 0.045328213813397654,
+      "flag_fraction": 0.04532821381339765,
       "detectors": [
         1,
         2,
@@ -80,9 +82,10 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     }
   ],
-  "n_exposures_total": 259,
+  "n_exposures_total": 258,
   "cache_hit": false
 }

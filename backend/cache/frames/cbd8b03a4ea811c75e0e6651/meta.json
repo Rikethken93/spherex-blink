@@ -19,7 +19,7 @@
       "mjd_max": 60836.189811632,
       "mjd_mean": 60804.09543978148,
       "n_exposures": 134,
-      "flag_fraction": 0.09267478102742274,
+      "flag_fraction": 0.09267478102742273,
       "detectors": [
         1,
         2,
@@ -35,14 +35,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 60946.964111227,
       "mjd_max": 60991.857570382,
       "mjd_mean": 60959.08541532226,
       "n_exposures": 150,
-      "flag_fraction": 0.08563508753637195,
+      "flag_fraction": 0.08563508753637193,
       "detectors": [
         1,
         2,
@@ -58,7 +59,8 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": true
     },
     {
       "mjd_min": 61148.844790093,
@@ -81,14 +83,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": true
     },
     {
       "mjd_min": 61305.226906088,
       "mjd_max": 61315.478075579,
       "mjd_mean": 61310.828470095505,
       "n_exposures": 120,
-      "flag_fraction": 0.062415716459924296,
+      "flag_fraction": 0.06241571645992429,
       "detectors": [
         2,
         3,
@@ -100,7 +103,8 @@
         2.032,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": true
     }
   ],
   "n_exposures_total": 482,

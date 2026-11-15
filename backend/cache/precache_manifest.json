@@ -1,0 +1,182 @@
+{
+  "barnards-star": {
+    "3": {
+      "dec_deg": 4.768060556738888,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": 10362.394,
+      "pmra_mas_yr": -801.551,
+      "ra_deg": 269.44627952656725
+    },
+    "6": {
+      "dec_deg": 4.768060556738888,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": 10362.394,
+      "pmra_mas_yr": -801.551,
+      "ra_deg": 269.44627952656725
+    }
+  },
+  "epsilon-indi-b": {
+    "3": {
+      "dec_deg": -56.805461913057876,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": -2500.0,
+      "pmra_mas_yr": 3976.0,
+      "ra_deg": 331.11498454075627
+    },
+    "6": {
+      "dec_deg": -56.80546176974673,
+      "modes": [
+        "blink",
+        "difference",
+        "sum"
+      ],
+      "pmdec_mas_yr": null,
+      "pmra_mas_yr": null,
+      "ra_deg": 331.1149841246549
+    }
+  },
+  "luhman-16": {
+    "3": {
+      "dec_deg": -53.317569609385195,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": 358.472,
+      "pmra_mas_yr": -2768.511,
+      "ra_deg": 162.3087210422121
+    },
+    "6": {
+      "dec_deg": -53.31756965113605,
+      "modes": [
+        "blink",
+        "difference",
+        "sum"
+      ],
+      "pmdec_mas_yr": null,
+      "pmra_mas_yr": null,
+      "ra_deg": 162.3087215819996
+    }
+  },
+  "proxima-centauri": {
+    "3": {
+      "dec_deg": -62.673948401036114,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": 769.465,
+      "pmra_mas_yr": -3781.741,
+      "ra_deg": 217.3695505711851
+    },
+    "6": {
+      "dec_deg": -62.673948401036114,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": 769.465,
+      "pmra_mas_yr": -3781.741,
+      "ra_deg": 217.3695505711851
+    }
+  },
+  "r-draconis": {
+    "3": {
+      "dec_deg": 66.75502531357564,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": null,
+      "pmra_mas_yr": null,
+      "ra_deg": 248.1672204180043
+    }
+  },
+  "rw-aurigae": {
+    "3": {
+      "dec_deg": 30.40143817389,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": null,
+      "pmra_mas_yr": null,
+      "ra_deg": 76.95652603458
+    },
+    "6": {
+      "dec_deg": 30.40143817389,
+      "modes": [
+        "blink",
+        "difference",
+        "sum"
+      ],
+      "pmdec_mas_yr": null,
+      "pmra_mas_yr": null,
+      "ra_deg": 76.95652603458
+    }
+  },
+  "ugps0722": {
+    "3": {
+      "dec_deg": -5.67365003441601,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": 352.025,
+      "pmra_mas_yr": -904.14,
+      "ra_deg": 110.610341358519
+    }
+  },
+  "wise0855": {
+    "3": {
+      "dec_deg": -7.242088425390298,
+      "modes": [
+        "blink",
+        "difference",
+        "rgb",
+        "sum"
+      ],
+      "pmdec_mas_yr": null,
+      "pmra_mas_yr": null,
+      "ra_deg": 133.757887733552
+    },
+    "6": {
+      "dec_deg": -7.242088257528304,
+      "modes": [
+        "blink",
+        "difference",
+        "sum"
+      ],
+      "pmdec_mas_yr": null,
+      "pmra_mas_yr": null,
+      "ra_deg": 133.75788569160895
+    }
+  }
+}

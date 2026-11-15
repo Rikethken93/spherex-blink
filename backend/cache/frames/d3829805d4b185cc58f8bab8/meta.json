@@ -1,6 +1,6 @@
 {
-  "ra_deg": 331.1149823040473,
-  "dec_deg": -56.805461142704054,
+  "ra_deg": 331.11498454075627,
+  "dec_deg": -56.805461913057876,
   "fov_arcmin": 3.0,
   "mode": "sum",
   "detector": null,
@@ -14,9 +14,9 @@
     {
       "mjd_min": 60789.855521771,
       "mjd_max": 60836.189811632,
-      "mjd_mean": 60804.59035936964,
-      "n_exposures": 123,
-      "flag_fraction": 0.0918582030223224,
+      "mjd_mean": 60804.36871015732,
+      "n_exposures": 125,
+      "flag_fraction": 0.09174622048581621,
       "detectors": [
         1,
         2,
@@ -32,14 +32,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 60946.964111227,
       "mjd_max": 60991.857570382,
-      "mjd_mean": 60958.965181301995,
-      "n_exposures": 145,
-      "flag_fraction": 0.06891319076320512,
+      "mjd_mean": 60959.208028252506,
+      "n_exposures": 147,
+      "flag_fraction": 0.07001398600321167,
       "detectors": [
         1,
         2,
@@ -55,14 +56,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 61148.844790093,
       "mjd_max": 61164.116949745,
-      "mjd_mean": 61155.15739143401,
-      "n_exposures": 75,
-      "flag_fraction": 0.07385268859822962,
+      "mjd_mean": 61155.113670166815,
+      "n_exposures": 76,
+      "flag_fraction": 0.07331901766902395,
       "detectors": [
         1,
         2,
@@ -78,14 +80,15 @@
         3.125,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": false
     },
     {
       "mjd_min": 61305.226906088,
       "mjd_max": 61315.478075579,
       "mjd_mean": 61310.828470095505,
       "n_exposures": 120,
-      "flag_fraction": 0.059708281846230365,
+      "flag_fraction": 0.05970828184623037,
       "detectors": [
         2,
         3,
@@ -97,9 +100,10 @@
         2.032,
         4.121,
         4.711
-      ]
+      ],
+      "saturated_core": true
     }
   ],
-  "n_exposures_total": 463,
+  "n_exposures_total": 468,
   "cache_hit": false
 }
