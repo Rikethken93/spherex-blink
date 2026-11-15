@@ -481,5 +481,27 @@ format: **Decision** — Alternatives considered — Reason.
   Verified live: `getComputedStyle(...).imageRendering === "pixelated"` on
   production, visually crisp square pixels instead of a blurred blob.
 
+- Follow-up to the `/api/resolve` fix above: the Gaia outage turned out to
+  be worse than first measured. A single attempt was observed live taking
+  anywhere from ~2 to ~5 minutes to fail (not the sub-2-minute figure a
+  plain OS TCP timeout would suggest -- astroquery's TAP+ client appears to
+  make more than one internal round-trip before surfacing one exception),
+  so the earlier 3-retry budget could still compound to 10+ minutes during
+  a sustained outage, and separately, the resulting pile of concurrent
+  overlapping requests (several retries x several simultaneous searches)
+  OOM-killed the backend machine once (confirmed via `fly logs`: genuine
+  `anon-rss` near the 512MB limit this time, not the trial-timer kill from
+  the earlier entry). Cut Gaia's retry budget to 1 (`resolve.py`): during a
+  real outage, a retry is not "a second chance at a flaky connection", it
+  is "wait several more minutes for the identical failure again" -- one
+  attempt, then straight to the static-position fallback, bounds the worst
+  case to one outage-length wait instead of multiplying it. Verified live:
+  a cold resolve for Barnard's Star during the live outage completed in
+  146s (previously compounding past 5+ minutes with the 3-retry budget),
+  fell back correctly with its warning, and was cached -- a repeat request
+  immediately after returned in 0.28s, and the full search-by-name flow
+  (resolve + the live IRSA frames fetch the fallback position still
+  requires) completed end-to-end on the production site.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)

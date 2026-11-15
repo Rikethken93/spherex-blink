@@ -110,14 +110,18 @@ def gaia_pm_lookup(approx: SkyCoord) -> dict | None:
 
     # Gaia's TAP client exposes no request timeout (unlike IRSA's, which
     # defaults to 60s -- see config.py): an unreachable Gaia endpoint fails
-    # each attempt via a bare OS-level connection timeout, observed live to
-    # take well over a minute per attempt with no error in between. At the
-    # default 6 retries that's a multi-minute wait for a single request;
-    # halving it keeps a couple of genuine retries for transient blips
-    # without compounding an actual outage into a worst case measured in
-    # many minutes (the /api/resolve cache above is the main mitigation --
-    # this just bounds the first, uncached request too).
-    table = with_backoff(_call, max_retries=3, what="Gaia DR3 cone search")
+    # each attempt via a bare connection-level timeout -- observed live to
+    # take anywhere from ~2 to ~5 minutes per single attempt (astroquery's
+    # TAP+ client appears to make more than one internal round-trip before
+    # surfacing one failure), not the sub-minute figure a plain OS TCP
+    # timeout would suggest. A retry here is not "a second chance at a
+    # flaky connection" -- during a real outage it is "wait several more
+    # minutes for the identical failure again". A single attempt, falling
+    # straight through to resolve_target_with_fallback's static-position
+    # fallback, bounds the worst case to one outage-length wait instead of
+    # compounding it; the /api/resolve cache above is what actually
+    # protects every request after that first one.
+    table = with_backoff(_call, max_retries=1, what="Gaia DR3 cone search")
     if len(table) == 0:
         return None
 
