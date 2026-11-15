@@ -290,14 +290,22 @@ body.low-bandwidth .starfield {
 
 .blink-container.zoomed .blink-frame {
   transform: scale(1.8);
-  image-rendering: pixelated;
 }
 
+/* SPHEREx's real pixel scale is ~6.2"/pixel, so a 3' field of view is a
+   genuine ~29x29px image -- the browser's default smooth upscaling to
+   fill the viewport blurs that handful of real pixels into a soft mush
+   that looks like missing detail rather than what it is: a low-resolution
+   instrument's actual native data. Crisp nearest-neighbor scaling shows
+   the real pixels honestly (and reads as "instrument display", matching
+   the bezel/glow treatment on .blink-container) instead of pretending to
+   a smoothness the data doesn't have. */
 .blink-frame {
   max-width: 100%;
   width: 100%;
   height: auto;
   display: block;
+  image-rendering: pixelated;
   transition: transform 0.15s ease, opacity 0.2s ease;
 }
 
@@ -509,10 +517,6 @@ dialog::backdrop {
 
 body.low-bandwidth .aladin-container {
   height: 200px;
-}
-
-body.low-bandwidth .blink-frame {
-  image-rendering: pixelated;
 }
 
 body.low-bandwidth .blink-container {

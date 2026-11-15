@@ -462,5 +462,24 @@ format: **Decision** — Alternatives considered — Reason.
     hangs repeatedly; what's not fixable is Gaia (or IRSA) itself being
     down, which is outside this app's control.
 
+- User flagged a screenshot looking blurry/low-detail ("no se ve muy
+  grande") (2026-11-15). Root cause: SPHEREx's real pixel scale is ~6.2"/
+  pixel, so a 3' field of view is a genuine ~29x29px native image (checked
+  directly: `naturalWidth`/`naturalHeight` on the live `.blink-frame` were
+  29x29) -- `.blink-frame` CSS had no `image-rendering` rule in its default
+  state (only in `.zoomed` and `body.low-bandwidth`), so the browser's
+  default smooth upscaling to fill a ~300-600px viewport blurred that
+  handful of real pixels into mush, which reads as "not much detail" even
+  though the detail genuinely isn't there to begin with -- a 29px source
+  can't look sharp at 600px no matter what, but smooth interpolation makes
+  it look like missing/broken data instead of what it is: a real,
+  low-resolution instrument's native output. Moved `image-rendering:
+  pixelated` into the base `.blink-frame` rule (always on, not just
+  zoomed/low-bandwidth) -- crisp nearest-neighbor scaling shows the actual
+  pixels honestly, which also reads better against the "instrument
+  display" bezel/glow treatment the redesign already gave this element.
+  Verified live: `getComputedStyle(...).imageRendering === "pixelated"` on
+  production, visually crisp square pixels instead of a blurred blob.
+
 (See the rest of this file for pipeline, frontend, and target-selection
 decisions, appended as each milestone lands.)
