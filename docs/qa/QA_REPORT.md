@@ -284,9 +284,11 @@ every Proxima/Barnard frame (both were off-frame or off-centre before),
 pixels are crisp squares, and the saturated cores read as white discs
 with a red outline instead of black holes.
 
-**Known remainder:** R Draconis's cache entry still carries the previous
-(ZScale) rendering style -- its 2,500+ exposure re-render was still
-fetching from a 503-flapping IRSA at verification time. Its position was
-always correct (negligible proper motion); only the stretch/saturation
-styling is stale until the re-render lands. Every other target x FOV x
-mode in the gallery serves the new rendering.
+**Update:** R Draconis's re-render (2,535 exposures, 4 epochs, all four
+modes) completed later the same evening through the 503-flapping IRSA,
+was committed, and the backend was redeployed -- verified live
+(`screenshots/qa2-r-draconis-fov3.png`): the gallery card loads the new
+cache in under a second, and the 6'->3' FOV fallback note displays
+correctly (only 3' is precached for this near-pole target). With that,
+**every gallery target x FOV x mode serves the new rendering at the
+proper-motion-corrected position**; no target remains on stale cache.
