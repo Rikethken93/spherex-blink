@@ -10,6 +10,8 @@ from __future__ import annotations
 import math
 import os
 
+import numpy as np
+
 from . import cache, config, precache_manifest
 from .errors import InvalidRequestError, NoCoverageError
 from .irsa_client import ExposureMeta, fetch_exposures, query_exposure_metadata
@@ -21,10 +23,63 @@ from .pipeline.render import (
     render_rgb,
     render_sum,
 )
-from .pipeline.reproject_stack import stack_epoch
+from .pipeline.reproject_stack import StackedFrame, stack_epoch
 from .pipeline.spectrum import extract_spectrum
 
 VALID_MODES = {"blink", "difference", "sum", "rgb"}
+
+STACK_FILENAME = "stack.npz"
+
+
+def _save_stack_cache(ra_deg: float, dec_deg: float, fov_arcmin: float, stacked_epochs) -> None:
+    """Persist the per-epoch stacked arrays for a field (compressed, a few
+    hundred KB) so later photometry at any *clicked* position inside the
+    field can be computed instantly, instead of re-fetching hundreds of
+    IRSA cutouts -- the rendered PNGs are stretched uint8 and useless for
+    measurement, and the raw-exposure cache doesn't ship in production."""
+    path = os.path.join(cache.stack_cache_dir(ra_deg, dec_deg, fov_arcmin), STACK_FILENAME)
+    tmp = f"{path}.tmp{os.getpid()}"
+    # Write through a file object: numpy then never second-guesses the
+    # name (it appends ".npz" to bare paths), and os.replace keeps the
+    # final file atomic -- a concurrent reader never sees a partial npz.
+    with open(tmp, "wb") as fh:
+        np.savez_compressed(
+            fh,
+            images=np.stack([s.image for s in stacked_epochs]).astype(np.float32),
+            variances=np.stack([s.variance for s in stacked_epochs]).astype(np.float32),
+            saturated=np.stack([s.saturated for s in stacked_epochs]),
+            flag_fractions=np.array([s.flag_fraction for s in stacked_epochs]),
+            n_exposures=np.array([s.n_exposures for s in stacked_epochs]),
+            mjd_mean=np.array([s.mjd_mean for s in stacked_epochs]),
+            mjd_min=np.array([s.mjd_min for s in stacked_epochs]),
+            mjd_max=np.array([s.mjd_max for s in stacked_epochs]),
+        )
+    os.replace(tmp, path)
+
+
+def _load_stack_cache(ra_deg: float, dec_deg: float, fov_arcmin: float) -> list[StackedFrame] | None:
+    path = os.path.join(cache.stack_cache_dir(ra_deg, dec_deg, fov_arcmin), STACK_FILENAME)
+    if not os.path.exists(path):
+        return None
+    with np.load(path) as data:
+        n = data["images"].shape[0]
+        empty = np.zeros(data["images"].shape[1:], dtype=bool)
+        return [
+            StackedFrame(
+                image=data["images"][i].astype(np.float64),
+                variance=data["variances"][i].astype(np.float64),
+                saturated=data["saturated"][i],
+                masked=empty,
+                flag_fraction=float(data["flag_fractions"][i]),
+                n_exposures=int(data["n_exposures"][i]),
+                detectors=[],
+                wavelengths_um=[],
+                mjd_mean=float(data["mjd_mean"][i]),
+                mjd_min=float(data["mjd_min"][i]),
+                mjd_max=float(data["mjd_max"][i]),
+            )
+            for i in range(n)
+        ]
 
 
 def _json_safe_point(point: dict) -> dict:
@@ -258,6 +313,8 @@ def get_frames(
                 return snap_cached
 
     exposures, epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin, detector, wl_min, wl_max)
+    if detector is None and wl_min is None and wl_max is None:
+        _save_stack_cache(ra_deg, dec_deg, fov_arcmin, stacked_epochs)
     epoch_meta = _epoch_metadata(epochs, stacked_epochs)
     frame_names = _render_mode(mode, stacked_epochs, cache_dir, exposures, ra_deg, dec_deg, fov_arcmin)
 
@@ -291,13 +348,56 @@ def get_spectrum(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV_D
         if snap_cached is not None:
             return snap_cached
 
-    exposures, _epochs, _stacked = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
+    exposures, _epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
+    _save_stack_cache(ra_deg, dec_deg, fov_arcmin, stacked_epochs)
     points = [p.__dict__ for p in extract_spectrum(exposures, ra_deg, dec_deg)]
     cache.write_json(cache_dir, points)
     return points
 
 
-def get_lightcurve(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV_DEFAULT_ARCMIN) -> list[dict]:
+def _field_stacks(ra_deg: float, dec_deg: float, fov_arcmin: float):
+    """Stacked epochs for a field, plus the field centre they're gridded
+    on: exact stack cache, then a manifest-snapped stack cache, then a
+    full (slow, possibly live) fetch+stack that also populates the cache
+    for next time."""
+    stacked = _load_stack_cache(ra_deg, dec_deg, fov_arcmin)
+    if stacked is not None:
+        return stacked, ra_deg, dec_deg
+
+    snapped = _snap_to_manifest(ra_deg, dec_deg, fov_arcmin, None)
+    if snapped is not None:
+        stacked = _load_stack_cache(snapped[1], snapped[2], fov_arcmin)
+        if stacked is not None:
+            return stacked, snapped[1], snapped[2]
+
+    _exposures, _epochs, stacked = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
+    _save_stack_cache(ra_deg, dec_deg, fov_arcmin, stacked)
+    return stacked, ra_deg, dec_deg
+
+
+def get_lightcurve(
+    ra_deg: float,
+    dec_deg: float,
+    fov_arcmin: float = config.FOV_DEFAULT_ARCMIN,
+    at_ra_deg: float | None = None,
+    at_dec_deg: float | None = None,
+) -> list[dict]:
+    # Photometry at a clicked position inside the field: measure on the
+    # field's cached stacked epochs at that pixel. Never cached as JSON
+    # (every click is a different position; the npz load is milliseconds)
+    # and never invents flux -- a fully saturated/masked aperture comes
+    # back as null points.
+    if at_ra_deg is not None and at_dec_deg is not None:
+        from .pipeline.reproject_stack import make_target_wcs
+
+        stacked_epochs, field_ra, field_dec = _field_stacks(ra_deg, dec_deg, fov_arcmin)
+        wcs, _shape = make_target_wcs(field_ra, field_dec, fov_arcmin)
+        x, y = wcs.wcs_world2pix([[at_ra_deg, at_dec_deg]], 0)[0]
+        points = build_light_curve(
+            stacked_epochs, field_ra, field_dec, fov_arcmin, center_px=(float(x), float(y))
+        )
+        return [_json_safe_point(p.__dict__) for p in points]
+
     cache_dir = cache.lightcurve_cache_dir(ra_deg, dec_deg, fov_arcmin)
     cached = cache.read_json(cache_dir)
     if cached is not None:
@@ -310,6 +410,7 @@ def get_lightcurve(ra_deg: float, dec_deg: float, fov_arcmin: float = config.FOV
             return snap_cached
 
     _exposures, _epochs, stacked_epochs = _fetch_and_stack(ra_deg, dec_deg, fov_arcmin)
+    _save_stack_cache(ra_deg, dec_deg, fov_arcmin, stacked_epochs)
     points = [_json_safe_point(p.__dict__) for p in build_light_curve(stacked_epochs, ra_deg, dec_deg, fov_arcmin)]
     cache.write_json(cache_dir, points)
     return points
@@ -340,6 +441,7 @@ def precache_all(
         jitter_range_seconds=jitter_range_seconds,
     )
     epoch_meta = _epoch_metadata(epochs, stacked_epochs)
+    _save_stack_cache(ra_deg, dec_deg, fov_arcmin, stacked_epochs)
 
     results: dict[str, object] = {"n_exposures_total": len(exposures), "n_epochs": len(epochs)}
 

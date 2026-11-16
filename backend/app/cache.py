@@ -42,6 +42,15 @@ def lightcurve_cache_dir(ra_deg: float, dec_deg: float, fov_arcmin: float) -> st
     return _entry_dir("lightcurve", ra=round(ra_deg, 5), dec=round(dec_deg, 5), fov=round(fov_arcmin, 2))
 
 
+def stack_cache_dir(ra_deg: float, dec_deg: float, fov_arcmin: float) -> str:
+    """Per-field stacked-epoch arrays (compressed npz), so photometry at a
+    *clicked* position inside an already-stacked field never needs to
+    re-fetch hundreds of cutouts from IRSA -- the rendered PNGs are
+    stretched to uint8 and useless for measurement, and the raw exposure
+    cache doesn't ship in the production image."""
+    return _entry_dir("stack", ra=round(ra_deg, 5), dec=round(dec_deg, 5), fov=round(fov_arcmin, 2))
+
+
 def read_json(directory: str, name: str = "meta.json"):
     path = os.path.join(directory, name)
     if not os.path.exists(path):

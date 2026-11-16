@@ -53,8 +53,10 @@ export interface LightCurvePoint {
   mjd: number;
   mjd_min: number;
   mjd_max: number;
-  flux: number;
-  error: number;
+  // null when the aperture is fully saturated/masked in that epoch -- the
+  // backend refuses to invent photometry from saturated pixels.
+  flux: number | null;
+  error: number | null;
   n_exposures: number;
   flag_fraction: number;
 }
@@ -131,8 +133,20 @@ export function getSpectrum(ra: number | string, dec: number | string, fov?: num
   return getJson<{ ra_deg: number; dec_deg: number; points: SpectrumPoint[] }>("/api/spectrum", { ra, dec, fov });
 }
 
-export function getLightCurve(ra: number | string, dec: number | string, fov?: number) {
-  return getJson<{ ra_deg: number; dec_deg: number; points: LightCurvePoint[] }>("/api/lightcurve", { ra, dec, fov });
+export function getLightCurve(
+  ra: number | string,
+  dec: number | string,
+  fov?: number,
+  atRa?: number,
+  atDec?: number,
+) {
+  return getJson<{
+    ra_deg: number;
+    dec_deg: number;
+    at_ra_deg: number | null;
+    at_dec_deg: number | null;
+    points: LightCurvePoint[];
+  }>("/api/lightcurve", { ra, dec, fov, at_ra: atRa, at_dec: atDec });
 }
 
 export function getTargets() {

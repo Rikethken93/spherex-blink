@@ -785,3 +785,26 @@ decisions, appended as each milestone lands.)
   dense 2MASS color imagery with the reticle on target. VizieR catalog
   overlays (Gaia/AllWISE dots) still depend on CDS and will reappear
   when it recovers -- they are wrapped in try/catch and degrade quietly.
+
+## Post-submission bugfix (2026-11-16, committed after the deadline, not yet deployed)
+
+- **Empty light-curve chart on saturated targets (Proxima Centauri,
+  Barnard's Star, R Draconis) fixed honestly.** Root cause: the 2-px
+  photometry aperture sits on the target's saturated core, every pixel is
+  (correctly) masked, so /api/lightcurve returns flux null for every
+  epoch -- and the frontend silently drew an empty axis frame. No
+  photometry is invented from saturated pixels; instead: (1) the chart
+  plots only epochs with finite flux, shows "N epoch(s) saturated" when
+  some are missing, and replaces the empty chart with a clear EN/ES
+  explanation when none are measurable; (2) the light curve now follows
+  the clicked pixel exactly like the spectrum does (/api/lightcurve
+  at_ra/at_dec), measured on per-field stacked-epoch npz caches
+  (backend/cache/stack/, ~620KB total for all 14 fields, committed) so a
+  click never re-fetches from IRSA; (3) regression tests
+  (tests/test_lightcurve_saturated.py) pin the null-flux JSON contract,
+  the offset-aperture behavior, and the out-of-frame edge case. Verified
+  in the local UI on proxima-centauri, barnards-star, r-draconis
+  (saturation message), rw-aurigae (real curve), and a clicked Proxima
+  neighbor (real curve at the clicked position). Labeled transparently
+  as a post-deadline bugfix; deploy deliberately held for the team's
+  explicit go-ahead.

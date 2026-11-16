@@ -70,6 +70,25 @@ async function handleImageClick(fracX: number, fracY: number): Promise<void> {
   const cosDec = Math.max(Math.cos((dec * Math.PI) / 180), 1e-6);
   const clickRa = ra + (0.5 - fracX) * fovDeg / cosDec;
   const clickDec = dec + (0.5 - fracY) * fovDeg;
+
+  // The light curve follows the clicked position the same way the
+  // spectrum does: photometry on the field's cached stacked epochs at
+  // that pixel (at_ra/at_dec), so clicking a neighbor of a saturated
+  // star shows that neighbor's real curve.
+  void getLightCurve(ra, dec, fov, clickRa, clickDec)
+    .then((lightcurve) => {
+      renderLightCurve(
+        el<HTMLCanvasElement>("lightcurve-canvas"),
+        lightcurve.points,
+        el<HTMLParagraphElement>("lightcurve-message"),
+      );
+      el<HTMLParagraphElement>("lightcurve-pos").textContent =
+        `${t("lightcurve.at")} ${clickRa.toFixed(5)}, ${clickDec.toFixed(5)}`;
+    })
+    .catch(() => {
+      /* off-coverage click: keep the previous curve rather than erroring */
+    });
+
   try {
     const spectrum = await getSpectrum(clickRa, clickDec, fov);
     renderSpectrum(el<HTMLCanvasElement>("spectrum-canvas"), spectrum.points);
@@ -129,13 +148,23 @@ async function loadAndShow(raDeg: number, decDeg: number, fovArcmin: number, mod
     // position; the spectrum view itself only loads on click (see below),
     // starting with the target center so the panel isn't empty at first.
     currentCenter = { ra: raDeg, dec: decDeg, fov: fovArcmin };
-    if (!state.lowBandwidth) void handleImageClick(0.5, 0.5);
-
-    try {
-      const lightcurve = await getLightCurve(raDeg, decDeg, fovArcmin);
-      renderLightCurve(el<HTMLCanvasElement>("lightcurve-canvas"), lightcurve.points);
-    } catch {
-      /* same as above */
+    if (!state.lowBandwidth) {
+      // Also loads the light curve at the centre via the clicked-position
+      // path -- no separate duplicate fetch needed.
+      void handleImageClick(0.5, 0.5);
+    } else {
+      try {
+        const lightcurve = await getLightCurve(raDeg, decDeg, fovArcmin);
+        renderLightCurve(
+          el<HTMLCanvasElement>("lightcurve-canvas"),
+          lightcurve.points,
+          el<HTMLParagraphElement>("lightcurve-message"),
+        );
+        el<HTMLParagraphElement>("lightcurve-pos").textContent =
+          `${t("lightcurve.at")} ${raDeg.toFixed(5)}, ${decDeg.toFixed(5)}`;
+      } catch {
+        /* same as above */
+      }
     }
   } catch (err) {
     stopLoading();

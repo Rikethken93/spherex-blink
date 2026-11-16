@@ -207,15 +207,28 @@ def lightcurve(
     ra: str = Query(...),
     dec: str = Query(...),
     fov: float = Query(config.FOV_DEFAULT_ARCMIN, ge=config.FOV_MIN_ARCMIN, le=config.FOV_MAX_ARCMIN),
+    # Optional clicked position inside the (ra, dec) field: photometry is
+    # done at this position on the field's cached stacked epochs, so the
+    # light curve can follow the cursor the same way the spectrum does.
+    at_ra: str | None = Query(None),
+    at_dec: str | None = Query(None),
 ):
     try:
         ra_deg = parse_ra_deg(ra)
         dec_deg = parse_dec_deg(dec)
-        points = service.get_lightcurve(ra_deg, dec_deg, fov)
+        at_ra_deg = parse_ra_deg(at_ra) if at_ra is not None else None
+        at_dec_deg = parse_dec_deg(at_dec) if at_dec is not None else None
+        points = service.get_lightcurve(ra_deg, dec_deg, fov, at_ra_deg, at_dec_deg)
     except InvalidRequestError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except NoCoverageError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except UpstreamUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    return {"ra_deg": ra_deg, "dec_deg": dec_deg, "points": points}
+    return {
+        "ra_deg": ra_deg,
+        "dec_deg": dec_deg,
+        "at_ra_deg": at_ra_deg,
+        "at_dec_deg": at_dec_deg,
+        "points": points,
+    }

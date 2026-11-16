@@ -21,12 +21,23 @@ class LightCurvePoint:
 
 
 def aperture_photometry(
-    stacked: StackedFrame, ra_deg: float, dec_deg: float, fov_arcmin: float, aperture_radius_px: float = 2.0
+    stacked: StackedFrame,
+    ra_deg: float,
+    dec_deg: float,
+    fov_arcmin: float,
+    aperture_radius_px: float = 2.0,
+    center_px: tuple[float, float] | None = None,
 ) -> tuple[float, float]:
+    """Variance-weighted mean flux in a small aperture. The aperture sits
+    at the frame centre by default (the field is built centred on the
+    target); pass `center_px` (x, y) to measure at any other pixel of the
+    same stacked field -- e.g. the position a user clicked. An aperture
+    that is fully saturated/masked (every pixel NaN) honestly returns NaN
+    rather than inventing a brightness."""
     _target_wcs, shape = make_target_wcs(ra_deg, dec_deg, fov_arcmin)
     ny, nx = shape
     yy, xx = np.mgrid[0:ny, 0:nx]
-    cx, cy = (nx - 1) / 2.0, (ny - 1) / 2.0
+    cx, cy = center_px if center_px is not None else ((nx - 1) / 2.0, (ny - 1) / 2.0)
     mask = (xx - cx) ** 2 + (yy - cy) ** 2 <= aperture_radius_px**2
 
     pix = stacked.image[mask]
@@ -46,11 +57,15 @@ def aperture_photometry(
 
 
 def build_light_curve(
-    stacked_epochs: list[StackedFrame], ra_deg: float, dec_deg: float, fov_arcmin: float
+    stacked_epochs: list[StackedFrame],
+    ra_deg: float,
+    dec_deg: float,
+    fov_arcmin: float,
+    center_px: tuple[float, float] | None = None,
 ) -> list[LightCurvePoint]:
     points: list[LightCurvePoint] = []
     for stacked in stacked_epochs:
-        flux, error = aperture_photometry(stacked, ra_deg, dec_deg, fov_arcmin)
+        flux, error = aperture_photometry(stacked, ra_deg, dec_deg, fov_arcmin, center_px=center_px)
         points.append(
             LightCurvePoint(
                 mjd=stacked.mjd_mean,

@@ -67,5 +67,8 @@
   "aladin.static_note": "Static sky image (NASA SkyView, DSS2) — interactive sky view unavailable right now; the cross marks the target.",
   "aladin.static_alt": "Static sky image of the searched field (NASA SkyView, DSS2)",
   "player.single_frame_hint": "This mode produces a single image — switch Mode to “Blink” to animate between epochs.",
-  "player.brightness": "Brightness"
+  "player.brightness": "Brightness",
+  "lightcurve.saturated_all": "No light curve: the target's core is saturated in SPHEREx, so its brightness can't be measured reliably. Click a nearby unsaturated star to see its light curve.",
+  "lightcurve.saturated_some": "{n} epoch(s) saturated",
+  "lightcurve.at": "at"
 }

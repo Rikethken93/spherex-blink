@@ -51,15 +51,47 @@ export function renderSpectrum(canvas: HTMLCanvasElement, points: SpectrumPoint[
   });
 }
 
-export function renderLightCurve(canvas: HTMLCanvasElement, points: LightCurvePoint[]): void {
+export function renderLightCurve(
+  canvas: HTMLCanvasElement,
+  points: LightCurvePoint[],
+  messageEl?: HTMLElement | null,
+): void {
   lightCurveChart?.destroy();
+  lightCurveChart = null;
+
+  // flux === null means that epoch's aperture was fully saturated/masked
+  // -- the backend refuses to invent photometry there. Plot only the
+  // honest points; if none survive, say why instead of drawing an empty
+  // axis frame that reads as a broken chart.
+  const valid = points.filter((p) => p.flux !== null && Number.isFinite(p.flux));
+  const nSaturated = points.length - valid.length;
+
+  if (valid.length === 0) {
+    canvas.style.display = "none";
+    if (messageEl) {
+      messageEl.textContent = t("lightcurve.saturated_all");
+      messageEl.style.display = "block";
+    }
+    return;
+  }
+
+  canvas.style.display = "";
+  if (messageEl) {
+    if (nSaturated > 0) {
+      messageEl.textContent = t("lightcurve.saturated_some").replace("{n}", String(nSaturated));
+      messageEl.style.display = "block";
+    } else {
+      messageEl.style.display = "none";
+    }
+  }
+
   lightCurveChart = new Chart(canvas, {
     type: "line",
     data: {
       datasets: [
         {
           label: t("panel.lightcurve"),
-          data: points.map((p) => ({ x: p.mjd, y: p.flux })),
+          data: valid.map((p) => ({ x: p.mjd, y: p.flux as number })),
           borderColor: COLORS[0],
           backgroundColor: COLORS[0],
           pointRadius: 4,
