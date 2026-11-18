@@ -808,3 +808,55 @@ decisions, appended as each milestone lands.)
   neighbor (real curve at the clicked position). Labeled transparently
   as a post-deadline bugfix; deploy deliberately held for the team's
   explicit go-ahead.
+
+## "Explore the sky" feature reverted (2026-11-17, same evening)
+
+The wide-field SPHEREx feature above was built, deployed, and then
+**reverted** (`git revert` of both its commits, non-destructive) after
+the user reported the live production symptom directly ("Sky view no
+carga en zoom out") and I reproduced it exactly via the real Aladin
+zoom-out control (not just Featured Region navigation): the canvas goes
+solid black the moment the SPHEREx layer activates, in a real browser,
+not only in this session's sandboxed Playwright.
+
+**Root cause, finally correctly isolated**: with `SPHEREX_WIDE_FIELD_
+THRESHOLD_DEG` temporarily set absurdly high (disabling SPHEREx
+entirely), the exact same 2MASS layer, through the exact same zoom
+sequence, out to the exact same 33 degree field, rendered perfectly --
+proving conclusively this was never a generic "wide zoom" or
+SwiftShader/sandbox limitation (the caveat written earlier in this file
+was wrong; corrected here). Swapping the activation target to the
+*same, already-working* 2MASS HiPS URL through the *exact* SPHEREx
+activation code path (identical overlay creation, `setSliceNumber`,
+redraw) also rendered perfectly -- isolating the bug to the real
+SPHEREx cube's own tile data/slicing specifically, not this app's
+layer-management code. One genuine bug *was* found and fixed along the
+way (`setSliceNumber(0)` -- used everywhere as the "force the first
+tile request" nudge -- maps to real frame 102, one past the cube's
+valid 0-101 range, 404ing on every tile unconditionally; fixed to
+`setSliceNumber(1)`, confirmed individually to map to a real, loading
+frame). That fix alone was not sufficient: the exact same 20-click
+zoom-out reproduction still went black afterward, suggesting the
+idx<->real-frame mapping calibrated at one position/order does not
+hold at every order Aladin requests while zooming continuously through
+a wide range -- a deeper, order-dependent inconsistency in how this
+specific cube HiPS's tiles interact with Aladin's generic cube-slicing
+machinery that needs a fundamentally different investigation (likely:
+either a different calibration *per order*, or abandoning Aladin's
+built-in cube-slice mechanism for this particular HiPS and requesting
+tiles some other way) rather than another targeted patch.
+
+Given real users (confirmed: the team, in their own browser, not just
+this sandbox) could hit a solid-black sky-view panel simply by zooming
+out -- the one interaction the landing page's own new one-liner told
+them to try -- shipping it broken was worse than not shipping it.
+Reverted to the last known-good state (sky view always shows 2MASS,
+the pre-existing, thoroughly reliable behavior) rather than leave a
+half-disabled, confusing intermediate state live. All of the research,
+the real discovery that a genuine live NASA SPHEREx HiPS exists at
+IRSA, and every dead end explored, stays recorded above and in the two
+reverted commits' history (`1b85ceb`, `5d52488`, and their reverts
+`cc6f24b`, `712a4e5`) for whoever picks this back up -- the HiPS
+discovery, the calibration technique, and the per-zoom-redraw fix are
+all still genuinely useful groundwork; what's missing is a correct,
+order-robust way to pick a valid slice for *this* cube specifically.
