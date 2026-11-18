@@ -425,6 +425,50 @@ body.low-bandwidth .starfield {
   border: 1px solid var(--border);
 }
 
+.explore-hint {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.sky-explore-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: -0.4rem 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.sky-explore-controls select {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.sky-explore-controls #blink-here-button {
+  margin-left: auto;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.featured-regions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.featured-region-btn {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+}
+
 .aladin-unavailable {
   display: flex;
   align-items: center;

@@ -70,5 +70,16 @@
   "player.brightness": "Brillo",
   "lightcurve.saturated_all": "Sin curva de luz: el núcleo del objeto está saturado en SPHEREx, así que su brillo no se puede medir con fiabilidad. Toca una estrella cercana no saturada para ver su curva de luz.",
   "lightcurve.saturated_some": "{n} época(s) saturada(s)",
-  "lightcurve.at": "en"
+  "lightcurve.at": "en",
+  "app.explore_hint": "Aleja la vista para ver los mapas químicos de la Vía Láctea de SPHEREx; acércate y usa el parpadeo para encontrar objetos en movimiento.",
+  "sky.band": "Banda de SPHEREx",
+  "sky.band.default": "Vista por defecto",
+  "sky.band.ice": "D4 ~3.12µm (hielo)",
+  "sky.icedust": "Mezcla Hielo/Polvo",
+  "sky.blink_here": "Parpadear aquí",
+  "sky.wide_note": "Vista amplia: HiPS de todo el cielo de SPHEREx (NASA/IPAC). Acércate o pulsa \"Parpadear aquí\" para la vista real a nivel de píxel.",
+  "sky.featured_hint": "Regiones destacadas:",
+  "region.cygnus_x": "Cygnus X",
+  "region.orion": "Nebulosa de Orión",
+  "region.rho_oph": "Rho Ophiuchi"
 }

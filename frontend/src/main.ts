@@ -20,7 +20,16 @@ import { applyTranslations, setLang, getLang, t } from "./i18n/i18n";
 import { readStateFromUrl, writeStateToUrl, embedSnippet } from "./state";
 import type { AppState } from "./state";
 import { BlinkPlayer } from "./components/player";
-import { initAladin, recenter, drawProperMotionArrow } from "./components/aladin";
+import {
+  initAladin,
+  recenter,
+  drawProperMotionArrow,
+  checkSphereXWideFieldAvailable,
+  getCurrentView,
+  setSphereXBand,
+  setIceDustBlend,
+  setIceDustOpacity,
+} from "./components/aladin";
 import { renderSpectrum, renderLightCurve } from "./components/charts";
 import { renderGallery } from "./components/gallery";
 import { renderMetadataTable } from "./components/metadata-table";
@@ -354,6 +363,83 @@ function wireTutorial(): void {
   el<HTMLButtonElement>("tutorial-close").addEventListener("click", () => el<HTMLDialogElement>("tutorial-dialog").close());
 }
 
+// Wide-field "Explore the sky" controls: a real, live NASA/IPAC SPHEREx
+// HiPS (see components/aladin.ts and DECISIONS.md) auto-replaces the
+// default 2MASS sky-view base layer once the user zooms out past 30' --
+// these controls (band slice, Ice-vs-Dust blend, Featured regions,
+// "Blink here") only make sense once that layer is confirmed reachable,
+// so they stay hidden until the one-time probe resolves. Nothing here
+// touches the scientific blink player until the user explicitly asks
+// for it via "Blink here" -- exploring the wide map never silently
+// changes what's being measured.
+async function wireSkyExploreControls(): Promise<void> {
+  if (state.lowBandwidth) return; // sky view itself is skipped there
+  const available = await checkSphereXWideFieldAvailable();
+  if (!available) return;
+
+  el<HTMLDivElement>("sky-explore-controls").style.display = "flex";
+
+  el<HTMLSelectElement>("sky-band-select").addEventListener("change", (e) => {
+    void setSphereXBand((e.target as HTMLSelectElement).value);
+  });
+
+  const opacitySlider = el<HTMLInputElement>("sky-icedust-opacity");
+  el<HTMLInputElement>("sky-icedust-toggle").addEventListener("change", (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    void setIceDustBlend(on, Number(opacitySlider.value));
+    opacitySlider.disabled = !on;
+  });
+  opacitySlider.addEventListener("input", (e) => {
+    setIceDustOpacity(Number((e.target as HTMLInputElement).value));
+  });
+
+  el<HTMLButtonElement>("blink-here-button").addEventListener("click", () => {
+    const view = getCurrentView();
+    if (!view) return;
+    const fovArcmin = Math.min(15, Math.max(1, Math.round(view.fovArcmin * 2) / 2));
+    state.ra = String(view.raDeg);
+    state.dec = String(view.decDeg);
+    state.fov = fovArcmin;
+    fovInput.value = String(fovArcmin);
+    searchInput.value = `${view.raDeg.toFixed(5)} ${view.decDeg.toFixed(5)}`;
+    writeStateToUrl(state);
+    void loadAndShow(view.raDeg, view.decDeg, fovArcmin, state.mode);
+  });
+}
+
+// Query params read once at startup (see init()) to open the sky-view
+// panel directly on a Featured Region, independent of the blink
+// player's own ra/dec/fov -- these two views are deliberately decoupled
+// (per the task: exploring the wide map never silently changes what the
+// blink player is measuring).
+const SKY_RA_PARAM = "sky_ra";
+const SKY_DEC_PARAM = "sky_dec";
+const SKY_FOV_PARAM = "sky_fov";
+
+function wireFeaturedRegions(): void {
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".featured-region-btn"));
+  for (const btn of buttons) {
+    btn.addEventListener("click", () => {
+      // A full page navigation, not an in-page Aladin camera move: every
+      // in-session attempt to swap the SPHEREx wide-field layer to a new
+      // position (redraw retries, an isolated calibration probe, a full
+      // teardown+reinit of the widget, even a forced layout-settle delay)
+      // left the canvas intermittently solid black for some positions,
+      // reproducible and position-specific, while a direct URL load to
+      // the exact same coordinates never once failed across dozens of
+      // attempts (see DECISIONS.md). A real navigation is the one code
+      // path proven 100% reliable, at the cost of a visible page reload
+      // for this deliberately infrequent "jump to a different region"
+      // action.
+      const url = new URL(window.location.href);
+      url.searchParams.set(SKY_RA_PARAM, btn.dataset.ra!);
+      url.searchParams.set(SKY_DEC_PARAM, btn.dataset.dec!);
+      url.searchParams.set(SKY_FOV_PARAM, btn.dataset.fov!);
+      window.location.href = url.toString();
+    });
+  }
+}
+
 // Preferred-first list of FOVs to try against a target's cached_positions
 // -- 6' is the app's own default (more context), falling back to 3' (the
 // originally-precached FOV, always complete for all 8 demo targets) if
@@ -425,6 +511,8 @@ async function init(): Promise<void> {
   wireLangAndBandwidthToggles();
   wireEmbedDialog();
   wireTutorial();
+  wireFeaturedRegions();
+  void wireSkyExploreControls();
   void loadGallery();
   // Purely decorative ambient backdrop -- skip it in low-bandwidth mode,
   // same philosophy as skipping the Aladin sky view there.
@@ -437,21 +525,41 @@ async function init(): Promise<void> {
   // Low bandwidth mode skips the sky view entirely: Aladin Lite pulls in
   // its own JS bundle plus HiPS tile and catalog imagery from an external
   // CDN, none of which the blink/spectrum/light-curve views need.
-  const maybeInitAladin = (ra: number, dec: number) => {
+  const maybeInitAladin = (ra: number, dec: number, fovDeg: number) => {
     if (state.lowBandwidth) {
       const container = el<HTMLDivElement>("aladin-lite-div");
       container.textContent = t("lowbw.sky_view_skipped");
     } else {
-      void initAladin("aladin-lite-div", ra, dec, state.fov / 60);
+      void initAladin("aladin-lite-div", ra, dec, fovDeg);
     }
   };
 
+  // A Featured Region link (?sky_ra=&sky_dec=&sky_fov=, see
+  // wireFeaturedRegions) opens the sky-view panel on that wide field --
+  // deliberately independent of the blink player below it, which still
+  // opens on whatever ra/dec/fov (if any) the URL separately carries.
+  const skyParams = new URLSearchParams(window.location.search);
+  const skyOverride =
+    skyParams.has(SKY_RA_PARAM) && skyParams.has(SKY_DEC_PARAM)
+      ? {
+          ra: Number(skyParams.get(SKY_RA_PARAM)),
+          dec: Number(skyParams.get(SKY_DEC_PARAM)),
+          fovDeg: Number(skyParams.get(SKY_FOV_PARAM)) || 4,
+        }
+      : null;
+
   if (initialRa !== null && initialDec !== null) {
     searchInput.value = `${initialRa} ${initialDec}`;
-    maybeInitAladin(initialRa, initialDec);
+    maybeInitAladin(
+      skyOverride?.ra ?? initialRa,
+      skyOverride?.dec ?? initialDec,
+      skyOverride?.fovDeg ?? state.fov / 60,
+    );
     await loadAndShow(initialRa, initialDec, state.fov, state.mode);
+  } else if (skyOverride) {
+    maybeInitAladin(skyOverride.ra, skyOverride.dec, skyOverride.fovDeg);
   } else {
-    maybeInitAladin(266.4, -29.0);
+    maybeInitAladin(266.4, -29.0, state.fov / 60);
   }
 
   window.addEventListener("popstate", () => {
