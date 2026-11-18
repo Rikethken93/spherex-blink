@@ -15,7 +15,6 @@
       <div class="app-header-left">
         <h1 data-i18n="app.title">SPHEREx Blink</h1>
         <p class="tagline" data-i18n="app.tagline">Spot moving and variable objects in NASA SPHEREx all-sky imagery</p>
-        <p class="tagline explore-hint" data-i18n="app.explore_hint">Zoom out to see SPHEREx's chemical maps of the Milky Way; zoom in and blink to find moving objects.</p>
       </div>
       <div class="app-header-right">
         <button id="lowbw-toggle" type="button" class="toggle-btn" aria-pressed="false">
@@ -75,37 +74,6 @@
       <aside class="panel panel-side" aria-label="Sky view and charts">
         <h2 data-i18n="panel.sky">Sky view</h2>
         <div id="aladin-lite-div" class="aladin-container"></div>
-
-        <div id="sky-explore-controls" class="sky-explore-controls" style="display: none">
-          <label for="sky-band-select" data-i18n="sky.band">SPHEREx band</label>
-          <select id="sky-band-select">
-            <option value="default" data-i18n="sky.band.default">Default view</option>
-            <option value="d1">D1 ~0.92µm</option>
-            <option value="d2">D2 ~1.36µm</option>
-            <option value="d3">D3 ~2.02µm</option>
-            <option value="d4" data-i18n="sky.band.ice">D4 ~3.12µm (ice)</option>
-            <option value="d5">D5 ~4.12µm</option>
-            <option value="d6">D6 ~4.71µm</option>
-          </select>
-
-          <label>
-            <input id="sky-icedust-toggle" type="checkbox" />
-            <span data-i18n="sky.icedust">Ice vs Dust blend</span>
-          </label>
-          <input id="sky-icedust-opacity" type="range" min="0" max="1" step="0.05" value="0.5" disabled />
-
-          <button id="blink-here-button" type="button" data-i18n="sky.blink_here">Blink here</button>
-        </div>
-        <p class="hint" id="sky-wide-note" style="display: none" data-i18n="sky.wide_note">
-          Wide view: SPHEREx all-sky HiPS (NASA/IPAC). Zoom in or click "Blink here" for the real pixel-level blink view.
-        </p>
-
-        <div id="featured-regions" class="featured-regions">
-          <p class="hint" data-i18n="sky.featured_hint">Featured regions:</p>
-          <button type="button" class="featured-region-btn" data-ra="307.5" data-dec="41.2" data-fov="4" data-i18n="region.cygnus_x">Cygnus X</button>
-          <button type="button" class="featured-region-btn" data-ra="85.0" data-dec="-2.5" data-fov="4" data-i18n="region.orion">Orion Nebula</button>
-          <button type="button" class="featured-region-btn" data-ra="246.8" data-dec="-24.5" data-fov="4" data-i18n="region.rho_oph">Rho Ophiuchi</button>
-        </div>
 
         <h2 data-i18n="panel.spectrum">Spectrum</h2>
         <p class="hint" data-i18n="panel.spectrum.hint">Click the image to plot a spectrum at that position</p>

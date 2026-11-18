@@ -70,16 +70,5 @@
   "player.brightness": "Brightness",
   "lightcurve.saturated_all": "No light curve: the target's core is saturated in SPHEREx, so its brightness can't be measured reliably. Click a nearby unsaturated star to see its light curve.",
   "lightcurve.saturated_some": "{n} epoch(s) saturated",
-  "lightcurve.at": "at",
-  "app.explore_hint": "Zoom out to see SPHEREx's chemical maps of the Milky Way; zoom in and blink to find moving objects.",
-  "sky.band": "SPHEREx band",
-  "sky.band.default": "Default view",
-  "sky.band.ice": "D4 ~3.12µm (ice)",
-  "sky.icedust": "Ice vs Dust blend",
-  "sky.blink_here": "Blink here",
-  "sky.wide_note": "Wide view: SPHEREx all-sky HiPS (NASA/IPAC). Zoom in or click \"Blink here\" for the real pixel-level blink view.",
-  "sky.featured_hint": "Featured regions:",
-  "region.cygnus_x": "Cygnus X",
-  "region.orion": "Orion Nebula",
-  "region.rho_oph": "Rho Ophiuchi"
+  "lightcurve.at": "at"
 }
