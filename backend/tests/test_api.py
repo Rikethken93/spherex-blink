@@ -336,3 +336,23 @@ def test_resolve_network_failure_is_still_503(monkeypatch, fresh_resolve_cache):
     monkeypatch.setattr(SkyCoord, "from_name", _down)
     resp = client.get("/api/resolve", params={"name": "Some Star"})
     assert resp.status_code == 503
+
+
+@pytest.mark.parametrize("typed,body", [("Saturno", "Saturn"), ("saturn", "Saturn"), ("Plutón", "Pluto"), ("Júpiter", "Jupiter"), ("Titán", "Titan")])
+def test_resolve_solar_system_body_is_explained_without_sesame(monkeypatch, fresh_resolve_cache, typed, body):
+    from astropy.coordinates import SkyCoord
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("Sesame must not be called for a Solar System body")
+
+    monkeypatch.setattr(SkyCoord, "from_name", _boom)
+    resp = client.get("/api/resolve", params={"name": typed})
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == f"solar_system_body:{body}"
+
+
+def test_solar_system_check_does_not_catch_stars():
+    from app.solar_system import match_solar_system_body
+
+    for name in ["Barnard's Star", "Proxima Centauri", "R Draconis", "Vega", "Saturn Nebula"]:
+        assert match_solar_system_body(name) is None

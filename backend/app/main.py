@@ -16,6 +16,7 @@ from .coords import parse_dec_deg, parse_ra_deg
 from .errors import InvalidRequestError, NameNotFoundError, NoCoverageError
 from .net import UpstreamUnavailable
 from .resolve import resolve_target_with_fallback
+from .solar_system import match_solar_system_body
 from .targets import ALL_TARGETS, find_target
 
 logging.basicConfig(level=logging.INFO)
@@ -125,6 +126,12 @@ def resolve(name: str = Query(..., min_length=1)):
             if isinstance(payload, Exception):
                 raise payload
             return payload
+
+    body = match_solar_system_body(name)
+    if body is not None:
+        # 422, with a machine-readable detail the frontend turns into an
+        # explanation (see solar_system.py for why these can't be blinked).
+        raise HTTPException(status_code=422, detail=f"solar_system_body:{body}")
 
     target = find_target(name)
     try:

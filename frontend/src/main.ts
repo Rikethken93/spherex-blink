@@ -250,7 +250,9 @@ async function runSearch(query: string, fov: number, mode: string): Promise<void
     resolved = await resolveName(query);
   } catch (err) {
     stopLoading();
-    if (err instanceof ApiError && err.status === 404) setStatus(t("error.name_not_found"));
+    if (err instanceof ApiError && err.status === 422 && err.message.startsWith("solar_system_body:")) {
+      setStatus(t("error.solar_system_body").replace("{name}", query));
+    } else if (err instanceof ApiError && err.status === 404) setStatus(t("error.name_not_found"));
     else if (err instanceof ApiError && err.status === 503) setStatus(t("error.resolver_unavailable"));
     else setStatus(t("error.generic"));
     return;
