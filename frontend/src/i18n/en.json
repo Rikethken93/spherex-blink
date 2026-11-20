@@ -70,5 +70,9 @@
   "player.brightness": "Brightness",
   "lightcurve.saturated_all": "No light curve: the target's core is saturated in SPHEREx, so its brightness can't be measured reliably. Click a nearby unsaturated star to see its light curve.",
   "lightcurve.saturated_some": "{n} epoch(s) saturated",
-  "lightcurve.at": "at"
+  "lightcurve.at": "at",
+  "status.resolving": "Looking up the object…",
+  "status.resolving_slow": "Still looking up this name — the CDS name resolver is responding slowly.",
+  "error.name_not_found": "That name wasn't recognized. Try the full catalog name (e.g. \"UGPS J072227.51-054031.2\") or enter RA/Dec coordinates.",
+  "error.resolver_unavailable": "The name resolver (CDS Sesame) is unavailable right now. Try again shortly, or enter RA/Dec coordinates instead."
 }

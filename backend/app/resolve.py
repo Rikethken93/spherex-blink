@@ -27,6 +27,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 
 from . import config
+from .errors import NameNotFoundError
 from .net import UpstreamUnavailable, with_backoff
 
 logger = logging.getLogger("spherex_blink.resolve")
@@ -58,10 +59,27 @@ class ResolvedPosition:
 
 
 def sesame_resolve(name: str) -> SkyCoord:
-    def _call() -> SkyCoord:
-        return SkyCoord.from_name(name)
+    """Resolve a name via CDS Sesame.
 
-    return with_backoff(_call, what=f"Sesame resolve '{name}'")
+    astropy raises the same NameResolveError for "Sesame answered: no such
+    name" and for network failures; only the latter is worth retrying. A
+    not-found returns None out of the retry loop (no backoff) and becomes a
+    NameNotFoundError -- previously it burned ~63s across 6 doomed retries
+    and surfaced as a misleading 503."""
+    from astropy.coordinates.name_resolve import NameResolveError
+
+    def _call() -> SkyCoord | None:
+        try:
+            return SkyCoord.from_name(name)
+        except NameResolveError as exc:
+            if "Unable to find coordinates" in str(exc):
+                return None
+            raise
+
+    result = with_backoff(_call, what=f"Sesame resolve '{name}'")
+    if result is None:
+        raise NameNotFoundError(f"Name '{name}' was not recognized by the CDS Sesame name resolver.")
+    return result
 
 
 def gaia_pm_lookup(approx: SkyCoord) -> dict | None:
@@ -268,7 +286,7 @@ def resolve_target_with_fallback(target, target_epoch_decimalyear: float | None 
         try:
             result = resolve_target_name(alias, target_epoch_decimalyear)
             return result
-        except UpstreamUnavailable as exc:
+        except (UpstreamUnavailable, NameNotFoundError) as exc:
             last_warning = str(exc)
             logger.warning("Alias '%s' failed: %s", alias, exc)
             continue

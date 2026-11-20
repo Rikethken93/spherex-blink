@@ -268,3 +268,71 @@ def test_rgb_mode_uses_a_distinct_stack_per_band(mock_coverage_multiband):
     # they were all equal, that's the old bug (same blended image reused
     # for every channel).
     assert len({r, g, b}) == 3, f"expected 3 distinct channel values, got R={r} G={g} B={b}"
+
+
+# --- name resolution -------------------------------------------------------
+
+
+@pytest.fixture(autouse=False)
+def fresh_resolve_cache(monkeypatch):
+    from app import main
+
+    monkeypatch.setattr(main, "_RESOLVE_CACHE", {})
+
+
+@pytest.mark.parametrize("typed", ["UGPS 0722-05", "ugps0722", "ugps-0722-05", "UGPS J072227.51-054031.2", "Estrella de Barnard"])
+def test_find_target_matches_display_names_and_aliases(typed):
+    from app.targets import find_target
+
+    assert find_target(typed) is not None
+
+
+def test_find_target_ignores_unknown_names():
+    from app.targets import find_target
+
+    assert find_target("Betelgeuse") is None
+
+
+def test_resolve_typed_display_name_uses_preset_without_sesame(monkeypatch, fresh_resolve_cache):
+    """Typing a gallery target's on-screen name must never hit Sesame."""
+    from astropy.coordinates import SkyCoord
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("Sesame must not be called for a built-in target")
+
+    monkeypatch.setattr(SkyCoord, "from_name", _boom)
+    resp = client.get("/api/resolve", params={"name": "UGPS 0722-05"})
+    assert resp.status_code == 200
+    assert resp.json()["pmra_mas_yr"] is not None
+
+
+def test_resolve_unknown_name_is_404_and_not_retried(monkeypatch, fresh_resolve_cache):
+    from astropy.coordinates import SkyCoord
+    from astropy.coordinates.name_resolve import NameResolveError
+
+    calls = []
+
+    def _not_found(name, *args, **kwargs):
+        calls.append(name)
+        raise NameResolveError(f"Unable to find coordinates for name '{name}' using https://example")
+
+    monkeypatch.setattr(SkyCoord, "from_name", _not_found)
+    resp = client.get("/api/resolve", params={"name": "Definitely Not A Star 123"})
+    assert resp.status_code == 404
+    assert len(calls) == 1
+
+
+def test_resolve_network_failure_is_still_503(monkeypatch, fresh_resolve_cache):
+    from astropy.coordinates import SkyCoord
+    from astropy.coordinates.name_resolve import NameResolveError
+
+    from app import net
+
+    monkeypatch.setattr(net.time, "sleep", lambda s: None)
+
+    def _down(name, *args, **kwargs):
+        raise NameResolveError("Unable to retrieve coordinates for name 'x'; connection timed out")
+
+    monkeypatch.setattr(SkyCoord, "from_name", _down)
+    resp = client.get("/api/resolve", params={"name": "Some Star"})
+    assert resp.status_code == 503
