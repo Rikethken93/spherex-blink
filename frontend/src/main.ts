@@ -311,6 +311,7 @@ function wirePlayerControls(): void {
   el<HTMLInputElement>("player-smooth").addEventListener("change", (e) => {
     state.smooth = (e.target as HTMLInputElement).checked;
     blinkContainer.classList.toggle("smooth", state.smooth);
+    player.setSmooth(state.smooth);
     writeStateToUrl(state);
   });
   el<HTMLInputElement>("player-contrast").addEventListener("input", (e) => {
@@ -434,6 +435,7 @@ async function init(): Promise<void> {
   if (state.smooth) {
     el<HTMLInputElement>("player-smooth").checked = true;
     blinkContainer.classList.add("smooth");
+    player.setSmooth(true);
   }
   el<HTMLInputElement>("player-contrast").value = String(state.contrast);
   el<HTMLInputElement>("player-brightness").value = String(state.brightness);
