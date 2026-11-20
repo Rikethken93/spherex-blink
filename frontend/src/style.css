@@ -495,6 +495,69 @@ canvas {
   color: var(--accent-cool);
 }
 
+.metadata-table .unit {
+  text-transform: none;
+}
+
+/* Narrow panel (phones, or the two-column layout on a small screen):
+   seven fixed equal-width columns can't fit -- the non-wrapping
+   "Saturated core" badge overflowed its column and got clipped. Stack
+   each epoch as a small card of label/value pairs instead. A container
+   query, not a media query: what matters is the panel's width, which is
+   narrow even on a wide viewport when the sky-view column sits beside it. */
+#metadata-host {
+  container-type: inline-size;
+}
+
+@container (max-width: 560px) {
+  .metadata-table,
+  .metadata-table thead,
+  .metadata-table tbody,
+  .metadata-table tr,
+  .metadata-table td {
+    display: block;
+    width: auto;
+  }
+  .metadata-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .metadata-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.6rem;
+  }
+  .metadata-table td {
+    border: none;
+    padding: 0;
+    overflow-wrap: anywhere;
+  }
+  .metadata-table td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+  }
+  /* Long lists (wavelengths) and the note get a full-width row. */
+  .metadata-table td:nth-child(6),
+  .metadata-table td:nth-child(7) {
+    grid-column: 1 / -1;
+  }
+  .metadata-table td.empty-note {
+    display: none;
+  }
+}
+
 /* ---------------- Gallery ---------------- */
 
 .gallery-host {

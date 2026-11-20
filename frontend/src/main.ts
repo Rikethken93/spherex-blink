@@ -46,9 +46,25 @@ const modeSelect = el<HTMLSelectElement>("mode-select");
 const blinkContainer = el<HTMLDivElement>("blink-container");
 const metadataHost = el<HTMLDivElement>("metadata-host");
 
+// The label follows the player's real state, via data-i18n so a language
+// switch (applyTranslations) re-renders the right word, not always "Play".
+function syncPlayButton(playing: boolean): void {
+  const btn = el<HTMLButtonElement>("player-playpause");
+  const key = playing ? "player.pause" : "player.play";
+  btn.dataset.i18n = key;
+  btn.textContent = t(key);
+  btn.setAttribute("aria-pressed", String(playing));
+}
+
 const player = new BlinkPlayer(blinkContainer, {
   onImageClick: (fracX, fracY) => void handleImageClick(fracX, fracY),
+  onPlayStateChange: syncPlayButton,
 });
+
+// A blink only means something while it's blinking: start playback as soon
+// as a multi-epoch sequence loads (gallery pick, search, shared link) --
+// unless the viewer asked the OS to reduce motion. Pause stays one tap away.
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Attach the CSS filter only while it actually does something -- see
 // .blink-container.contrasted in style.css for why a no-op filter still
@@ -145,6 +161,7 @@ async function loadAndShow(raDeg: number, decDeg: number, fovArcmin: number, mod
       writeStateToUrl(state);
     }
     player.setFrames(result.frame_urls.map(frameUrl), servedFov);
+    if (!prefersReducedMotion) player.play();
     renderMetadataTable(metadataHost, result.epochs);
     setStatus(
       `${result.n_exposures_total} exposures -> ${result.epochs.length} epoch(s)` +
@@ -250,7 +267,9 @@ async function runSearch(query: string, fov: number, mode: string): Promise<void
     resolved = await resolveName(query);
   } catch (err) {
     stopLoading();
-    if (err instanceof ApiError && err.status === 404) setStatus(t("error.name_not_found"));
+    if (err instanceof ApiError && err.status === 422 && err.message.startsWith("solar_system_body:")) {
+      setStatus(t("error.solar_system_body").replace("{name}", query));
+    } else if (err instanceof ApiError && err.status === 404) setStatus(t("error.name_not_found"));
     else if (err instanceof ApiError && err.status === 503) setStatus(t("error.resolver_unavailable"));
     else setStatus(t("error.generic"));
     return;
@@ -292,7 +311,6 @@ function wirePlayerControls(): void {
       return;
     }
     player.togglePlay();
-    el<HTMLButtonElement>("player-playpause").textContent = player.isPlaying() ? t("player.pause") : t("player.play");
   });
   el<HTMLButtonElement>("player-prev").addEventListener("click", () => player.stepPrev());
   el<HTMLButtonElement>("player-next").addEventListener("click", () => player.stepNext());

@@ -74,5 +74,6 @@
   "status.resolving": "Buscando el objeto…",
   "status.resolving_slow": "Seguimos buscando este nombre — el resolvedor de nombres del CDS está respondiendo lento.",
   "error.name_not_found": "No reconocimos ese nombre. Prueba con el nombre completo de catálogo (p. ej. \"UGPS J072227.51-054031.2\") o ingresa coordenadas AR/Dec.",
-  "error.resolver_unavailable": "El resolvedor de nombres (CDS Sesame) no está disponible en este momento. Inténtalo de nuevo en un rato o ingresa coordenadas AR/Dec."
+  "error.resolver_unavailable": "El resolvedor de nombres (CDS Sesame) no está disponible en este momento. Inténtalo de nuevo en un rato o ingresa coordenadas AR/Dec.",
+  "error.solar_system_body": "{name} es un cuerpo del Sistema Solar. Se mueve por el cielo día a día, así que no está en el mismo lugar entre épocas de SPHEREx (separadas por meses), y los planetas brillantes saturan el detector. SPHEREx Blink compara un trozo fijo de cielo: prueba con una estrella, una enana marrón o coordenadas AR/Dec."
 }
