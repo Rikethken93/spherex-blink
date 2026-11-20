@@ -5,6 +5,10 @@ export interface PlayerCallbacks {
   /** Fired on click with the click position as a fraction of the image
    * (0,0 = top-left, 1,1 = bottom-right), for mapping to a sky position. */
   onImageClick?: (fracX: number, fracY: number) => void;
+  /** Fired whenever playback starts or stops, for whatever reason (button,
+   * new frame set, end of a non-looping run, speed change). The Play/Pause
+   * button label must follow this, not just its own clicks. */
+  onPlayStateChange?: (playing: boolean) => void;
 }
 
 // SPHEREx's native pixel scale is ~6.2"/pixel, and the backend already
@@ -180,24 +184,25 @@ export class BlinkPlayer {
 
   setSpeed(fps: number): void {
     this.fps = Math.max(0.5, Math.min(10, fps));
-    if (this.playing) {
-      this.stop();
-      this.play();
-    }
+    if (this.playing) this.play(); // restart the interval at the new rate
   }
 
   play(): void {
     if (this.frames.length < 2) return;
+    if (this.timer !== null) window.clearInterval(this.timer); // never stack intervals
     this.playing = true;
     this.timer = window.setInterval(() => this.advance(), 1000 / this.fps);
+    this.callbacks.onPlayStateChange?.(true);
   }
 
   pause(): void {
+    const wasPlaying = this.playing;
     this.playing = false;
     if (this.timer !== null) {
       window.clearInterval(this.timer);
       this.timer = null;
     }
+    if (wasPlaying) this.callbacks.onPlayStateChange?.(false);
   }
 
   stop(): void {
