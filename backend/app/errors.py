@@ -7,3 +7,9 @@ class NoCoverageError(Exception):
 class InvalidRequestError(Exception):
     """Raised for validated-but-rejected input (bad FOV, bad coordinates,
     unknown detector, etc)."""
+
+
+class NameNotFoundError(Exception):
+    """Raised when the name resolver (CDS Sesame) answered and simply does
+    not know the name. Permanent for that name -- never retried, and
+    reported as a 404 rather than a 503 "archive unavailable"."""

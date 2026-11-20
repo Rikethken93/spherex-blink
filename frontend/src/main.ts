@@ -107,10 +107,17 @@ let loadingTimer: ReturnType<typeof setTimeout> | undefined;
 // minute (the archive is occasionally slow/flaky -- see net.py). A bare
 // "…" that never changes reads as a hung page, so switch to a message
 // that explains the wait once it's gone on for a few seconds.
-function beginLoading(): () => void {
-  setStatus(t("status.loading"));
+// Name lookup (Sesame) and image fetching (IRSA) are separate waits with
+// separate messages: showing "this position isn't cached, fetching from
+// NASA" while the app is actually still resolving a name -- for a target
+// that *is* cached -- sent users looking for the wrong problem.
+function beginLoading(
+  initialKey = "status.loading",
+  slowKey = "status.loading_slow",
+): () => void {
+  setStatus(t(initialKey));
   clearTimeout(loadingTimer);
-  loadingTimer = setTimeout(() => setStatus(t("status.loading_slow")), 6000);
+  loadingTimer = setTimeout(() => setStatus(t(slowKey)), 6000);
   return () => clearTimeout(loadingTimer);
 }
 
@@ -237,17 +244,33 @@ async function runSearch(query: string, fov: number, mode: string): Promise<void
     }
   }
 
-  const stopLoading = beginLoading();
+  const stopLoading = beginLoading("status.resolving", "status.resolving_slow");
+  let resolved;
   try {
-    const resolved = await resolveName(query);
+    resolved = await resolveName(query);
+  } catch (err) {
     stopLoading();
-    await showResolvedTarget(
-      resolved.ra_deg, resolved.dec_deg, fov, mode, resolved.pmra_mas_yr, resolved.pmdec_mas_yr, resolved.warning,
-    );
-  } catch {
-    stopLoading();
-    setStatus(t("error.generic"));
+    if (err instanceof ApiError && err.status === 404) setStatus(t("error.name_not_found"));
+    else if (err instanceof ApiError && err.status === 503) setStatus(t("error.resolver_unavailable"));
+    else setStatus(t("error.generic"));
+    return;
   }
+  stopLoading();
+  // A typed name that the backend matched to a built-in target (it returns
+  // the target key as `name`) must use the exact precached position, like
+  // a gallery click does: a freshly propagated position can differ in the
+  // last decimals from the one precache.py baked in, which is a cache miss
+  // and a multi-minute live IRSA fetch for data that's already on disk.
+  const cached = currentTargets
+    .find((tgt) => tgt.key === resolved.name)
+    ?.cached_positions?.[String(fov)];
+  if (cached && cached.modes.includes(mode)) {
+    await showResolvedTarget(cached.ra_deg, cached.dec_deg, fov, mode, cached.pmra_mas_yr, cached.pmdec_mas_yr, null);
+    return;
+  }
+  await showResolvedTarget(
+    resolved.ra_deg, resolved.dec_deg, fov, mode, resolved.pmra_mas_yr, resolved.pmdec_mas_yr, resolved.warning,
+  );
 }
 
 function wireSearchForm(): void {
@@ -288,6 +311,7 @@ function wirePlayerControls(): void {
   el<HTMLInputElement>("player-smooth").addEventListener("change", (e) => {
     state.smooth = (e.target as HTMLInputElement).checked;
     blinkContainer.classList.toggle("smooth", state.smooth);
+    player.setSmooth(state.smooth);
     writeStateToUrl(state);
   });
   el<HTMLInputElement>("player-contrast").addEventListener("input", (e) => {
@@ -411,6 +435,7 @@ async function init(): Promise<void> {
   if (state.smooth) {
     el<HTMLInputElement>("player-smooth").checked = true;
     blinkContainer.classList.add("smooth");
+    player.setSmooth(true);
   }
   el<HTMLInputElement>("player-contrast").value = String(state.contrast);
   el<HTMLInputElement>("player-brightness").value = String(state.brightness);

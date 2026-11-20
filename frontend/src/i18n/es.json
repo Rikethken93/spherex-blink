@@ -70,5 +70,9 @@
   "player.brightness": "Brillo",
   "lightcurve.saturated_all": "Sin curva de luz: el núcleo del objeto está saturado en SPHEREx, así que su brillo no se puede medir con fiabilidad. Toca una estrella cercana no saturada para ver su curva de luz.",
   "lightcurve.saturated_some": "{n} época(s) saturada(s)",
-  "lightcurve.at": "en"
+  "lightcurve.at": "en",
+  "status.resolving": "Buscando el objeto…",
+  "status.resolving_slow": "Seguimos buscando este nombre — el resolvedor de nombres del CDS está respondiendo lento.",
+  "error.name_not_found": "No reconocimos ese nombre. Prueba con el nombre completo de catálogo (p. ej. \"UGPS J072227.51-054031.2\") o ingresa coordenadas AR/Dec.",
+  "error.resolver_unavailable": "El resolvedor de nombres (CDS Sesame) no está disponible en este momento. Inténtalo de nuevo en un rato o ingresa coordenadas AR/Dec."
 }

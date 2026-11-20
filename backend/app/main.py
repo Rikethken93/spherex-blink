@@ -13,10 +13,10 @@ from fastapi.responses import FileResponse
 
 from . import config, precache_manifest, service
 from .coords import parse_dec_deg, parse_ra_deg
-from .errors import InvalidRequestError, NoCoverageError
+from .errors import InvalidRequestError, NameNotFoundError, NoCoverageError
 from .net import UpstreamUnavailable
 from .resolve import resolve_target_with_fallback
-from .targets import ALL_TARGETS, TARGETS_BY_KEY
+from .targets import ALL_TARGETS, find_target
 
 logging.basicConfig(level=logging.INFO)
 
@@ -126,7 +126,7 @@ def resolve(name: str = Query(..., min_length=1)):
                 raise payload
             return payload
 
-    target = TARGETS_BY_KEY.get(name.lower().replace(" ", "-"))
+    target = find_target(name)
     try:
         if target is not None:
             result = resolve_target_with_fallback(target)
@@ -134,6 +134,10 @@ def resolve(name: str = Query(..., min_length=1)):
             from .resolve import resolve_target_name
 
             result = resolve_target_name(name)
+    except NameNotFoundError as exc:
+        http_exc = HTTPException(status_code=404, detail=str(exc))
+        _RESOLVE_CACHE[cache_key] = (time.monotonic(), http_exc)
+        raise http_exc from exc
     except UpstreamUnavailable as exc:
         http_exc = HTTPException(status_code=503, detail=str(exc))
         _RESOLVE_CACHE[cache_key] = (time.monotonic(), http_exc)

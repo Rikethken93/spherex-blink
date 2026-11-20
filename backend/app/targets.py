@@ -186,3 +186,23 @@ EXTRA_TARGETS: list[Target] = [
 
 ALL_TARGETS: list[Target] = REQUIRED_TARGETS + EXTRA_TARGETS
 TARGETS_BY_KEY: dict[str, Target] = {t.key: t for t in ALL_TARGETS}
+
+
+def _normalize_name(name: str) -> str:
+    """Lowercase and drop everything but letters/digits, so "UGPS 0722-05",
+    "ugps0722" and "UGPS-0722-05" all compare equal."""
+    return "".join(ch for ch in name.lower() if ch.isalnum())
+
+
+_TARGETS_BY_NORMALIZED_NAME: dict[str, Target] = {}
+for _t in ALL_TARGETS:
+    for _n in [_t.key, *_t.display_name.values(), *_t.resolve_names]:
+        _TARGETS_BY_NORMALIZED_NAME.setdefault(_normalize_name(_n), _t)
+
+
+def find_target(name: str) -> Target | None:
+    """Match free text against a built-in target's key, display name (any
+    language) or Sesame alias. Typing a gallery target's on-screen name must
+    land on the precached target, not a live Sesame lookup that may not know
+    the abbreviated display name at all (e.g. "UGPS 0722-05")."""
+    return _TARGETS_BY_NORMALIZED_NAME.get(_normalize_name(name))

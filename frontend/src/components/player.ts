@@ -1,3 +1,5 @@
+import { smoothedFrameUrl } from "./smooth";
+
 export interface PlayerCallbacks {
   onFrameChange?: (index: number) => void;
   /** Fired on click with the click position as a fraction of the image
@@ -35,6 +37,11 @@ export class BlinkPlayer {
   private markerFrac: { x: number; y: number } | null = null;
   private markerEnabled = true;
   private callbacks: PlayerCallbacks;
+  private smooth = false;
+  // Bumped on every setFrames/setSmooth so a slow async smoothing pass for
+  // an old frame set can never overwrite a newer one.
+  private generation = 0;
+  private displayFrames: string[] = [];
 
   constructor(container: HTMLElement, callbacks: PlayerCallbacks = {}) {
     this.container = container;
@@ -101,9 +108,34 @@ export class BlinkPlayer {
   setFrames(urls: string[], fovArcmin?: number): void {
     this.stop();
     this.frames = urls;
+    this.displayFrames = urls;
     if (fovArcmin !== undefined) this.fovArcmin = fovArcmin;
     this.index = 0;
     this.render();
+    this.refreshDisplayFrames();
+  }
+
+  /** Smooth = real bicubic interpolation of the native pixels (see
+   * smooth.ts), not just CSS smoothing of the pre-blocked PNG. */
+  setSmooth(on: boolean): void {
+    this.smooth = on;
+    this.refreshDisplayFrames();
+  }
+
+  private refreshDisplayFrames(): void {
+    const gen = ++this.generation;
+    if (!this.smooth) {
+      this.displayFrames = this.frames;
+      this.render();
+      return;
+    }
+    // Swap in all smoothed frames at once, so a playing blink never
+    // alternates between smoothed and blocky frames.
+    void Promise.all(this.frames.map(smoothedFrameUrl)).then((urls) => {
+      if (gen !== this.generation) return;
+      this.displayFrames = urls;
+      this.render();
+    });
   }
 
   /** Place the J2000 marker at an image-fraction position (same convention
@@ -228,7 +260,7 @@ export class BlinkPlayer {
       this.scaleBar.style.display = "none";
       return;
     }
-    this.img.src = this.frames[this.index];
+    this.img.src = this.displayFrames[this.index] ?? this.frames[this.index];
     this.callbacks.onFrameChange?.(this.index);
   }
 
